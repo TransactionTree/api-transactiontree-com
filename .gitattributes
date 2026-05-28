@@ -1,0 +1,9 @@
+# Normalize all text files to LF in the repo (CI runs on Linux).
+# Windows checkouts get LF on disk too — modern editors handle it fine.
+* text=auto eol=lf
+
+# Explicit binary protection (no text conversion)
+*.png binary
+*.jpg binary
+*.gif binary
+*.zip binary

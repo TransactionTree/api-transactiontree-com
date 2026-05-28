@@ -1,0 +1,16 @@
+# Local working files — never commit
+_*.ps1
+_*.sh
+_*.json
+*.local.json
+.env
+.env.*
+!.env.example
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~

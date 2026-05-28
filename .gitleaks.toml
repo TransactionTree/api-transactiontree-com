@@ -1,0 +1,25 @@
+# Gitleaks config for api.transactiontree.com
+# Extends the default ruleset. Allowlist exists ONLY for known stale strings
+# carried over from the initial portal mirror — these get removed in PR #1
+# (cleanup), after which this allowlist should be deleted entirely.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "tt-stale-sectoken-placeholder"
+description = "Stale sectoken values present in initial mirror"
+# Match the specific repeated base64 sectoken prefix from the audit
+regex = '''UmlTUmV5VTZNRnpwT0p3OERmbXNleU9WM3JaMkZQaTFt'''
+keywords = ["sectoken"]
+
+[allowlist]
+description = "Known stale strings from the initial portal mirror — TODO remove with PR #1 cleanup"
+regexes = [
+  '''peterparker''',
+  '''pparkertt33''',
+  '''UmlTUmV5VTZNRnpwT0p3OERmbXNleU9W''',
+]
+paths = [
+  '''postman/collection\.json''',
+]

@@ -1,0 +1,78 @@
+name: Publish to Postman
+
+# Phase 1 (initial bring-up): manual trigger only — flip the auto trigger on
+# after a successful manual test and after CI API key is confirmed working.
+#
+# To enable auto-publish on merge, add to the `on:` block below:
+#   push:
+#     branches: [main]
+#     paths:
+#       - 'postman/collection.json'
+#       - '.github/workflows/publish-to-postman.yml'
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate only — do not actually push to Postman"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+permissions:
+  contents: read
+
+env:
+  # Postman collection that backs https://api.transactiontree.com
+  POSTMAN_COLLECTION_ID: "6363906-51a49200-876e-409b-9fcb-fda943672a22"
+  COLLECTION_FILE: "postman/collection.json"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JSON parses
+        run: |
+          jq -e . "$COLLECTION_FILE" > /dev/null
+          echo "JSON valid — bytes=$(stat -c %s $COLLECTION_FILE) items=$(jq '.collection.item | length' $COLLECTION_FILE)"
+
+      - name: Internal-leak scan
+        run: bash scripts/internal-leak-check.sh "$COLLECTION_FILE"
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to Postman
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: |
+          if [[ -z "$POSTMAN_API_KEY" ]]; then
+            echo "::error::POSTMAN_API_KEY secret is not set — configure in repo settings before merging."
+            exit 1
+          fi
+          # The Postman PUT endpoint expects the body shape {"collection": <full collection object>}.
+          # Our file already wraps under .collection at the top level (that's what the GET endpoint returns),
+          # so we can use it directly.
+          http_status=$(curl -sS -o response.json -w "%{http_code}" \
+            -X PUT \
+            -H "X-Api-Key: $POSTMAN_API_KEY" \
+            -H "Content-Type: application/json" \
+            --data-binary "@$COLLECTION_FILE" \
+            "https://api.getpostman.com/collections/$POSTMAN_COLLECTION_ID")
+          echo "HTTP $http_status"
+          cat response.json
+          echo
+          if [[ "$http_status" != "200" ]]; then
+            echo "::error::Postman PUT failed with HTTP $http_status"
+            exit 1
+          fi
+
+      - name: Dry run notice
+        if: ${{ inputs.dry_run == 'true' }}
+        run: echo "DRY RUN — validations passed, no push to Postman performed."

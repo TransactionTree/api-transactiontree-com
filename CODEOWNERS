@@ -1,0 +1,15 @@
+# CODEOWNERS for api.transactiontree.com
+# Every PR requires review from one of the owners below before merge.
+# See https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners — everything
+*       @jshapiro2
+
+# Postman collection — extra scrutiny on the published artifact
+/postman/    @jshapiro2
+
+# CI/CD — workflow changes are sensitive (touch the publish path)
+/.github/    @jshapiro2
+
+# Note: add @chris-wilson-github-handle once confirmed, then the @jshapiro2 above
+# should remain for any solo-reviewer scenarios.
