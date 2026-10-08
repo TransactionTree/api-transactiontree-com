@@ -12,7 +12,7 @@ regex = '''sectoken=(?:[A-Za-z0-9+/=%_-]{16,})'''
 keywords = ["sectoken"]
 
 [[rules]]
-id = "postman-password-literal"
-description = "Literal password value in a Postman query/body (use {{password}} or <string>)"
-regex = '''(?i)"key"\s*:\s*"[a-z_]*pass[a-z_]*"\s*,\s*"value"\s*:\s*"[^"<{][^"]{3,}"'''
-keywords = ["pass"]
+id = "postman-credential-literal"
+description = "Literal credential in a Postman key/value pair (use {{variable}} or <string>)"
+regex = '''(?i)"key"\s*:\s*"(?:sectoken|accessTokenKey|X-tenant-Key|access_token|client_password|[a-z_]*pass[a-z_]*)"\s*,\s*"value"\s*:\s*"[^"<{][^"]{3,}"'''
+keywords = ["sectoken", "accesstokenkey", "x-tenant-key", "access_token", "pass"]
