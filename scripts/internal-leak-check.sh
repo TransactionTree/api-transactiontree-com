@@ -24,8 +24,10 @@ jq -e . "$TARGET" >/dev/null 2>&1 || { echo "internal-leak-check: $TARGET is not
 
 hits=0
 
+# Show at most 3 leading chars, and only when the value is long enough (>= 9) that
+# they reveal little; shorter values are fully redacted. Length is always shown.
 mask() {
-  awk '{ printf "    %s…(%d)\n", substr($0, 1, 3), length($0) }'
+  awk '{ n = length($0); printf "    %s…(%d)\n", (n >= 9 ? substr($0, 1, 3) : "***"), n }'
 }
 
 report() {
@@ -133,7 +135,7 @@ scan "recorded session GUID (use 00000000-0000-0000-0000-000000000000)" \
   '(?<=[>:])(?!0{8}-0{4}-0{4}-0{4}-0{12})[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
 scan "recorded session cookies" \
-  'JSESSIONID=(?!0+(\.\w+)?[;\s"\\])[^;\s"\\]+|OFBiz\.Visitor=(?!10000\b)\d+'
+  'JSESSIONID=(?!0+(\.\w+)?[;\s"\\])[^;\s"\\]+|OFBiz\.Visitor=(?!10000(?=[;\s"\\]|$))[^;\s"\\]+'
 
 # --- customers & people ---------------------------------------------------------------
 scan "customer-identifying names / hosts" \
