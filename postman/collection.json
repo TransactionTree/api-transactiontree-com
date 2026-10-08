@@ -3893,7 +3893,7 @@
                       "method": "GET",
                       "header": [],
                       "url": {
-                        "raw": "{{VRGbaseURL}}/file/logincheckemail?username={{username}}&password={{password}}&lookuptype=email&lookupid=valid.customer@example.com",
+                        "raw": "{{VRGbaseURL}}/file/logincheckemail?username={{username}}&password={{password}}&lookuptype=email&lookupid=customer@gmail.com",
                         "host": [
                           "{{VRGbaseURL}}"
                         ],
@@ -3916,7 +3916,7 @@
                           },
                           {
                             "key": "lookupid",
-                            "value": "valid.customer@example.com",
+                            "value": "customer@gmail.com",
                             "description": "This is an example email that passes all checks"
                           }
                         ]
@@ -4316,7 +4316,7 @@
                       "method": "GET",
                       "header": [],
                       "url": {
-                        "raw": "{{VRGbaseURL}}/file/logincheckemail?sectoken={{sectoken}}&lookuptype=email&lookupid=valid.customer@example.com",
+                        "raw": "{{VRGbaseURL}}/file/logincheckemail?sectoken={{sectoken}}&lookuptype=email&lookupid=customer@gmail.com",
                         "host": [
                           "{{VRGbaseURL}}"
                         ],
@@ -4335,7 +4335,7 @@
                           },
                           {
                             "key": "lookupid",
-                            "value": "valid.customer@example.com"
+                            "value": "customer@gmail.com"
                           }
                         ]
                       }
@@ -4436,7 +4436,7 @@
             "name": "Test Cases",
             "item": [],
             "id": "3df0038b-76be-485f-be3e-b5532b72f5e2",
-            "description": "Below are test cases that can be used to get the different response from the endpoints **logingetemail** and **logincheckemail**.\n\n<table><tbody><tr><th>EndPoint</th><th>Status Code</th><th>Status Detail</th><th>lookuptype</th><th>lookupid</th></tr><tr><td>logingetemail</td><td>800</td><td>Email Address no preference</td><td>altid</td><td>15555550102</td></tr><tr><td>logingetemail</td><td>801</td><td>Email Address with preference (email)</td><td>altid</td><td>15555550103</td></tr><tr><td>logingetemail</td><td>801</td><td>Email Address with preference (print)</td><td>altid</td><td>15555550104</td></tr><tr><td>logingetemail</td><td>801</td><td>Email Address with preference (both)</td><td>altid</td><td>15555550105</td></tr><tr><td>logingetemail</td><td>802</td><td>NoEmail</td><td>altid</td><td>15555550106</td></tr><tr><td>logingetemail</td><td>803</td><td>Valid Email but no Receipt preference</td><td>altid</td><td>15555550107</td></tr><tr><td>logingetemail</td><td>804</td><td>Bounced</td><td>altid</td><td>15555550108</td></tr><tr><td>logincheckemail</td><td>805</td><td>Email Blocklist</td><td>email</td><td>do_not_email@icloud.com</td></tr><tr><td>logingetemail</td><td>805</td><td>Email Blocklist</td><td>altid</td><td>15555550109</td></tr><tr><td>logingetemail</td><td>806</td><td>Format</td><td>altid</td><td>15555550110</td></tr><tr><td>logincheckemail</td><td>806</td><td>Format</td><td>email</td><td>test.@example.com</td></tr><tr><td>logingetemail</td><td>807</td><td>Spamtrap</td><td>altid</td><td>15555550111</td></tr><tr><td>logincheckemail</td><td>807</td><td>Spamtrap</td><td>email</td><td>customer9@example.com</td></tr><tr><td>logingetemail</td><td>808</td><td>Abuse</td><td>altid</td><td>15555550112</td></tr><tr><td>logingetemail</td><td>809</td><td>Forbidden</td><td>altid</td><td>15555550113</td></tr><tr><td>logingetemail</td><td>810</td><td>Multiple Emails</td><td>altid</td><td>15555550114</td></tr><tr><td>logincheckemail</td><td>811</td><td>No MX Record</td><td>email</td><td>example@agoodmail.com</td></tr><tr><td>logincheckemail</td><td>812</td><td>Domain Corrected</td><td>email</td><td>customer@gamil.com</td></tr><tr><td>logincheckemail</td><td>814</td><td>Valid Email Format</td><td>email</td><td>valid.customer@example.com</td></tr><tr><td>logincheckemail</td><td>815</td><td>Domain Blocked</td><td>email</td><td>example@donotuse.com</td></tr><tr><td>loginputemail</td><td>817</td><td>Phone Prefix Blocked</td><td>altid</td><td>15555550100</td></tr><tr><td>loginputemail</td><td>818</td><td>Phone Area Code Blocked</td><td>altid</td><td>15555550115</td></tr></tbody></table>",
+            "description": "The values below are **illustrative**: they show the shape of each test case. The sandbox lookup values that trigger each response are issued with your sandbox credentials; request them from support@transactiontree.com.\n\nTest cases for the different responses from the endpoints **logingetemail** and **logincheckemail**.\n\n<table><tbody><tr><th>EndPoint</th><th>Status Code</th><th>Status Detail</th><th>lookuptype</th><th>lookupid</th></tr><tr><td>logingetemail</td><td>800</td><td>Email Address no preference</td><td>altid</td><td>15555550102</td></tr><tr><td>logingetemail</td><td>801</td><td>Email Address with preference (email)</td><td>altid</td><td>15555550103</td></tr><tr><td>logingetemail</td><td>801</td><td>Email Address with preference (print)</td><td>altid</td><td>15555550104</td></tr><tr><td>logingetemail</td><td>801</td><td>Email Address with preference (both)</td><td>altid</td><td>15555550105</td></tr><tr><td>logingetemail</td><td>802</td><td>NoEmail</td><td>altid</td><td>15555550106</td></tr><tr><td>logingetemail</td><td>803</td><td>Valid Email but no Receipt preference</td><td>altid</td><td>15555550107</td></tr><tr><td>logingetemail</td><td>804</td><td>Bounced</td><td>altid</td><td>15555550108</td></tr><tr><td>logincheckemail</td><td>805</td><td>Email Blocklist</td><td>email</td><td>do_not_email@icloud.com</td></tr><tr><td>logingetemail</td><td>805</td><td>Email Blocklist</td><td>altid</td><td>15555550109</td></tr><tr><td>logingetemail</td><td>806</td><td>Format</td><td>altid</td><td>15555550110</td></tr><tr><td>logincheckemail</td><td>806</td><td>Format</td><td>email</td><td>test.@example.com</td></tr><tr><td>logingetemail</td><td>807</td><td>Spamtrap</td><td>altid</td><td>15555550111</td></tr><tr><td>logincheckemail</td><td>807</td><td>Spamtrap</td><td>email</td><td>customer9@example.com</td></tr><tr><td>logingetemail</td><td>808</td><td>Abuse</td><td>altid</td><td>15555550112</td></tr><tr><td>logingetemail</td><td>809</td><td>Forbidden</td><td>altid</td><td>15555550113</td></tr><tr><td>logingetemail</td><td>810</td><td>Multiple Emails</td><td>altid</td><td>15555550114</td></tr><tr><td>logincheckemail</td><td>811</td><td>No MX Record</td><td>email</td><td>example@agoodmail.com</td></tr><tr><td>logincheckemail</td><td>812</td><td>Domain Corrected</td><td>email</td><td>customer@gamil.com</td></tr><tr><td>logincheckemail</td><td>814</td><td>Valid Email Format</td><td>email</td><td>customer@gmail.com</td></tr><tr><td>logincheckemail</td><td>815</td><td>Domain Blocked</td><td>email</td><td>example@donotuse.com</td></tr><tr><td>loginputemail</td><td>817</td><td>Phone Prefix Blocked</td><td>altid</td><td>12015550100</td></tr><tr><td>loginputemail</td><td>818</td><td>Phone Area Code Blocked</td><td>altid</td><td>15555550115</td></tr></tbody></table>",
             "createdAt": "2021-07-30T17:56:03Z",
             "updatedAt": "2022-02-09T17:29:28Z",
             "uid": "6363906-3df0038b-76be-485f-be3e-b5532b72f5e2"
@@ -4720,7 +4720,7 @@
                     ],
                     "cookie": [],
                     "responseTime": null,
-                    "body": "<response>800:Success\n    <StoreName>ABC Store</StoreName>\n    <Address1>123 Example St</Address1>\n    <Address2></Address2>\n    <Address3></Address3>\n    <City>Lakewood</City>\n    <State>CO</State>\n    <Country>USA</Country>\n    <Zip>99999</Zip>\n    <StorePhoneNumber>555-555-0116</StorePhoneNumber>\n    <ShortName></ShortName>\n    <AreaCode>555</AreaCode>\n    <BandwidthPhoneNumber>(555) 555-0116</BandwidthPhoneNumber>\n</response>",
+                    "body": "<response>800:Success\n    <StoreName>Main Street</StoreName>\n    <Address1>123 Example St</Address1>\n    <Address2></Address2>\n    <Address3></Address3>\n    <City>Springfield</City>\n    <State>IL</State>\n    <Country>USA</Country>\n    <Zip>99999</Zip>\n    <StorePhoneNumber>555-555-0116</StorePhoneNumber>\n    <ShortName></ShortName>\n    <AreaCode>555</AreaCode>\n    <BandwidthPhoneNumber>(555) 555-0116</BandwidthPhoneNumber>\n</response>",
                     "createdAt": "2024-02-27T15:29:50Z",
                     "updatedAt": "2024-02-27T15:34:17Z",
                     "uid": "6363906-97d5d401-ecbc-4ae9-b9fc-8573beccd70e"
@@ -5031,7 +5031,7 @@
                     ],
                     "cookie": [],
                     "responseTime": null,
-                    "body": "<Response>800:Success\r\n\t<zip>99999</zip>\r\n\t<city>Denver</city>\r\n\t<url1>https://search.google.com/local/writereview?placeid=sample</url1>\r\n\t<url2></url2>\r\n\t<url3></url3>\r\n\t<url4></url4>\r\n\t<brand>ABC Store</brand>\r\n\t<email></email>\r\n\t<phone>555-555-0116</phone>\r\n\t<state>CO</state>\r\n\t<address>123 Example St</address>\r\n\t<country>USA</country>\r\n\t<manager></manager>\r\n\t<address2></address2>\r\n\t<district></district>\r\n\t<storeHTML></storeHTML>\r\n\t<storeName>Broadway</storeName>\r\n\t<storeImage />\r\n\t<returnPolicy></returnPolicy>\r\n\t<storeImageURL />\r\n</Response>",
+                    "body": "<Response>800:Success\r\n\t<zip>99999</zip>\r\n\t<city>Springfield</city>\r\n\t<url1>https://search.google.com/local/writereview?placeid=sample</url1>\r\n\t<url2></url2>\r\n\t<url3></url3>\r\n\t<url4></url4>\r\n\t<brand>ABC Store</brand>\r\n\t<email></email>\r\n\t<phone>555-555-0116</phone>\r\n\t<state>IL</state>\r\n\t<address>123 Example St</address>\r\n\t<country>USA</country>\r\n\t<manager></manager>\r\n\t<address2></address2>\r\n\t<district></district>\r\n\t<storeHTML></storeHTML>\r\n\t<storeName>Main Street</storeName>\r\n\t<storeImage />\r\n\t<returnPolicy></returnPolicy>\r\n\t<storeImageURL />\r\n</Response>",
                     "createdAt": "2024-02-27T18:22:13Z",
                     "updatedAt": "2024-02-27T18:24:28Z",
                     "uid": "6363906-a75e026e-b8e5-43e9-85cf-468143aec3df"
@@ -5317,7 +5317,7 @@
                         "urlencoded": [
                           {
                             "key": "XmlInput",
-                            "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<REQUEST xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"https://www.transactiontree.com/framework/schema/bormc/Customer/findCustomersRequestB.xsd\">\n\t<CRITERIA>\n\t\t<REQUEST_DATE>{{today}}</REQUEST_DATE>\n\t\t<EMAIL_ID>customer</EMAIL_ID>\n\t\t<STORE_ID>{{StoreID}}</STORE_ID>\n\t</CRITERIA>\n</REQUEST>\n",
+                            "value": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<REQUEST xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:noNamespaceSchemaLocation=\"https://www.transactiontree.com/framework/schema/bormc/Customer/findCustomersRequestB.xsd\">\n\t<CRITERIA>\n\t\t<REQUEST_DATE>{{today}}</REQUEST_DATE>\n\t\t<EMAIL_ID>{{CustomerEmail}}</EMAIL_ID>\n\t\t<STORE_ID>{{StoreID}}</STORE_ID>\n\t</CRITERIA>\n</REQUEST>\n",
                             "type": "text"
                           }
                         ]
