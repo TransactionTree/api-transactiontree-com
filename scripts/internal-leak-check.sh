@@ -92,7 +92,7 @@ scan "TT environment hosts (use a {{...URL}} variable or sandbox.example.com)" \
 # Postman also stores hosts split into arrays ("ptest1","storesmail","com"), which text scans miss.
 scan_jq "TT / internal host in a url.host array" \
   '[.. | objects | select(has("host") and (.host | type == "array")) | .host | map(tostring) | join(".")
-    | select(test("(receiptx|bormc|storesmail)\\.com|digivize\\.ai|lynxs\\.|bormc\\.io|^(10|192\\.168|172\\.(1[6-9]|2[0-9]|3[01]))\\.|(^|\\.)(?!www\\.|api\\.)[a-z0-9_-]+\\.transactiontree\\.com$"; "i"))] | .[]'
+    | select(test("(receiptx|bormc|storesmail)\\.com|digivize\\.ai|lynxs\\.|bormc\\.io|^(10|192\\.168|172\\.(1[6-9]|2[0-9]|3[01])|100\\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])|128\\.136\\.200|208\\.93\\.113)\\.|(^|\\.)(?!www\\.|api\\.)[a-z0-9_-]+\\.transactiontree\\.com$"; "i"))] | .[]'
 
 scan "BORMC admin paths" \
   '/(webtools|webtools-test|accounting|partymgr|workeffort|content)/control/'
@@ -107,13 +107,14 @@ scan "known stale credentials (audit 2026-05-28)" \
 scan "literal VRG sectoken in a URL" \
   'sectoken=(?!'"$PH"')[A-Za-z0-9+/=%_-]{8,}'
 
-scan "literal password in a URL" \
-  '[?&][a-z_]*password=(?!'"$PH"')[^&"\\\s]+'
+scan "literal username / password in a URL" \
+  '[?&][a-z_]*(password|username)=(?!'"$PH"')[^&"\\\s]+'
 
+# Any non-placeholder value after a credential key in a body (JSON, XML or query style)
 scan "literal credential inside a body string" \
-  '(access_?token(key)?|sectoken|client_?(secret|password)|api[_-]?key|x-tenant-key|password)(\\?"\s*:\s*\\?"|>|=)(?!'"$PH"'|\\?"|<)[A-Za-z0-9+/=_.-]{6,}'
+  '(access_?token(key)?|sectoken|client_?(secret|password)|api[_-]?key|x-tenant-key|x-auth-token|subscription-key|password|\btoken)(\\?"\s*:\s*\\?"|>|=)(?!'"$PH"'|\\?"|<)[^"\\<&\s]{4,}'
 
-CRED_KEYS='^(sectoken|accessTokenKey|X-tenant-Key|access_?token|accessToken|refresh_?token|token|client_?secret|clientSecret|client_?password|secret|authorization|cookie|.*api[-_]?key|[a-z_]*pass(word)?)$'
+CRED_KEYS='^(sectoken|accessTokenKey|X-tenant-Key|access_?token|accessToken|refresh_?token|token|x-auth-token|.*subscription-key|client_?secret|clientSecret|client_?password|secret|authorization|cookie|username|.*api[-_]?key|[a-z_]*pass(word)?)$'
 
 # Postman key/value pairs (headers, query params, variables) span lines, so use jq.
 scan_jq "literal credential in a key/value pair (use {{variable}} or <string>)" \
@@ -124,21 +125,25 @@ scan_jq "literal credential in a key/value pair (use {{variable}} or <string>)" 
 # Auth blocks (apikey/bearer/basic/oauth2) store the secret under key value/token/password/...
 scan_jq "literal credential in an auth block" \
   "[.. | objects | select(has(\"auth\")) | .auth | objects | to_entries[] | select(.key != \"type\") | .value | arrays | .[]
-    | select((.key | tostring | test(\"^(value|token|password|username|accessToken|refreshToken|clientSecret)\$\")) and ((.value | tostring | $PLACEHOLDER) | not))
+    | select((.key | tostring | test(\"^(value|token|password|username|accessToken|refreshToken|clientSecret|clientToken|secretKey|accessKey|authKey)\$\")) and ((.value | tostring | $PLACEHOLDER) | not))
     | .value] | .[] | tostring"
 
 scan "recorded session GUID (use 00000000-0000-0000-0000-000000000000)" \
   '(?<=[>:])(?!0{8}-0{4}-0{4}-0{4}-0{12})[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
 scan "recorded session cookies" \
-  'JSESSIONID=0*[1-9a-f][0-9a-f]{7,}|OFBiz\.Visitor=(?!10000\b)\d+'
+  'JSESSIONID=(?!0+(\.\w+)?[;\s"\\])[^;\s"\\]+|OFBiz\.Visitor=(?!10000\b)\d+'
 
 # --- customers & people ---------------------------------------------------------------
 scan "customer-identifying names / hosts" \
-  '(princess ?auto|princessauto\.com|\bPAL\b|spencers?\b|scene7\.com|arc ?thrift|citi ?trends|harmons|worldwide golf|lowes foods|alex lee|bass ?pro|cabela|trader joe|half price books|familiprix|goodwill|\bhertz\b|\brona\b|\bwnpa?\b|western national|eastside sports|\bmuji\b|crazy shirts)'
+  '(princess ?auto|\bPAL\b|spencers?(online)?\b|scene7\.com|arc ?thrift|citi ?trends|harmons|world ?wide ?golf|lowes ?foods|alex ?lee|bass ?pro|cabela|trader ?joe|half ?price ?books|familiprix|goodwill|\bhertz\b|\bthrifty\b|\brona\b|\bwnpa?\b|western ?national|eastside ?sports|\bmuji\b|crazy ?shirts)'
 
+# Names in XML tags (raw or HTML-escaped in descriptions), JSON keys and query params.
+# Allowed: Test / Customer / Test Customer / Associate, Sample, empty, or a placeholder.
+NAME_OK='(Test|Customer|Test Customer|Associate, Sample|String|'"$PH"'|)'
+NAME_TAGS='(first_?name|last_?name|middle_?name|customer_?name|to_name|from_name|contact_name|employee_name|sales_associate|original_sales_associate)'
 scan "person name in a name field (use Test / Customer / Associate, Sample)" \
-  '<(first_?name|last_?name|middle_?name|customer_?name|to_name|from_name|contact_name|employee_name|sales_associate|original_sales_associate)>(?!(Test|Customer|Test Customer|Associate, Sample|)<)[^<]+|<associate_id>(?!(\d*|Associate, Sample)<)[^<]+|[?&](first|last)_?name=(?!(Test|Customer)\b|'"$PH"')[^&"\\\s]+'
+  '<'"$NAME_TAGS"'>(?!'"$NAME_OK"'<)[^<]+|&lt;'"$NAME_TAGS"'&gt;(?!'"$NAME_OK"'&lt;)[^&]+|<associate_id>(?!(\d*|Associate, Sample|'"$PH"')<)[^<]+|\\?"(first_?name|last_?name)\\?"\s*:\s*\\?"(?!'"$NAME_OK"'\\?")[^"\\]+|[?&](first|last)_?name=(?!(Test|Customer)\b|'"$PH"')[^&"\\\s]+'
 
 scan_jq "person name in a first_name/last_name parameter" \
   "[.. | objects | select(has(\"key\") and has(\"value\"))

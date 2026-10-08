@@ -22,13 +22,18 @@ Thanks for considering a contribution. This repo is the source of truth for the 
 ✅ Public API endpoints, example requests/responses, schemas, descriptions, conventions.
 
 ❌ **Do not commit**:
-- Real API keys, sectokens, or passwords (use placeholders like `<your-api-key>`)
-- Internal IP addresses (`10.x.x.x`, `192.168.x.x`)
-- Internal hostnames (`*.bormc.com` admin paths, `*.lynxs.local`, `*.lynxs.cloud`)
-- Customer-specific endpoint paths that reveal which customer uses what
-- PII in example payloads — use obviously-synthetic data (`Jane Test`, `test@example.com`)
+- Real API keys, sectokens, tenant keys, or passwords. Use the collection variables (`{{sectoken}}`, `{{password}}`, `{{accessTokenKey}}`, `{{X-tenant-Key}}`) or a whole placeholder like `<string>`
+- Internal IP addresses (`10.x.x.x`, `172.16–31.x.x`, `192.168.x.x`, `100.64–127.x.x`)
+- TT environment hosts (`*.receiptx.com`, `*.bormc.com`, `*.lynxs.*`). Use `{{VRGbaseURL}}`, `{{MMURL}}`, `{{BORMCURL}}` or `sandbox.example.com`
+- Customer names, brands, store details, product text or endpoint paths that reveal which customer uses what (use `Example Retailer`, `example-retailer.com`)
+- PII in example payloads or recorded responses. The CI scanner accepts only these synthetic values:
+  - names: `Test` / `Customer` / `Test Customer` / `Associate, Sample` (or a placeholder)
+  - emails: `@example.com` addresses, plus the documented email-validation fixtures
+  - phones: the fictional `555-0100`–`555-0199` range, any format (e.g. `5555550100`, `+1 201-555-0100`)
+  - session values: zeroed (`JSESSIONID=000…`, `00000000-0000-0000-0000-000000000000`, `OFBiz.Visitor=10000`)
+- Note: a 10-digit numeric ID shaped like a NANP phone number will trip the phone check — use a different length or a leading `0`
 
-The CI scanners catch many of these, but they are not exhaustive. When in doubt, ask in the PR.
+Run `bash scripts/internal-leak-check.sh postman/collection.json` before pushing (needs `jq` and GNU `grep -P`). The CI scanners catch many of these, but they are not exhaustive. When in doubt, ask in the PR.
 
 ## Reporting issues
 
