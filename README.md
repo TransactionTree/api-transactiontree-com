@@ -2,7 +2,7 @@
 
 Source of truth for the [TransactionTree API documentation portal](https://api.transactiontree.com).
 
-The published portal at `https://api.transactiontree.com` is rendered by Postman from the collection in this repo. Every merge to `main` that touches `postman/` triggers a sync that updates the live portal.
+The published portal at `https://api.transactiontree.com` is rendered by Postman from the collection in this repo. After a change is merged to `main`, a maintainer runs the **publish-to-postman** workflow by hand (Actions → publish-to-postman → Run workflow) to update the live portal. Merging alone does not publish.
 
 ## What's documented here
 
@@ -22,7 +22,7 @@ External integrators and TT staff are both welcome to contribute. See [CONTRIBUT
 ```
 GitHub PR merged to main
         │
-        ▼
+        ▼  (maintainer: Actions → Run workflow; manual, workflow_dispatch only)
 .github/workflows/publish-to-postman.yml
         │
         ├─ Validates collection.json parses

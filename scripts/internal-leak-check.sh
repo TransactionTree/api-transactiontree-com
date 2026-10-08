@@ -78,7 +78,7 @@ scan_jq() {
 PLACEHOLDER='test("^$|^<[^<>]+>$|^\\{\\{[^{}]+\\}\\}$|^(Basic|Bearer) \\{\\{[^{}]+\\}\\}$")'
 # Same idea inside free text (PCRE negative lookahead body). A placeholder only counts if
 # the field ends right after it, so "<secret-value" or "<string>literal" are not exempt.
-PH='(\{\{[^{}]+\}\}|<[^<>]+>|&lt;[^&]+&gt;)(?=$|["&\s\\<;,)])'
+PH='(\{\{[^{}]+\}\}|<[^<>]+>|&lt;[^&]+&gt;)(?=$|["&\\<;])'
 
 # --- infrastructure -------------------------------------------------------------------
 scan "private / TT / CGNAT IPv4" \

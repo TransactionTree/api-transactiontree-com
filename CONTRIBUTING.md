@@ -1,6 +1,6 @@
 # Contributing to api.transactiontree.com
 
-Thanks for considering a contribution. This repo is the source of truth for the public TransactionTree API documentation portal; everything merged here gets published live within a minute or two.
+Thanks for considering a contribution. This repo is the source of truth for the public TransactionTree API documentation portal; a maintainer publishes merged changes to the live portal by running the publish workflow.
 
 ## Who can contribute
 
@@ -15,7 +15,7 @@ Thanks for considering a contribution. This repo is the source of truth for the 
 4. Open a PR.
 5. CI runs JSON validation, the leak scan, and gitleaks. All must pass.
 6. CODEOWNERS review required before merge.
-7. On merge to `main`, the publish workflow auto-syncs the collection to Postman.
+7. After merge to `main`, a maintainer runs the `publish-to-postman` workflow (manual `workflow_dispatch`) to sync the collection to Postman. Merging alone does not publish.
 
 ## What belongs here
 
