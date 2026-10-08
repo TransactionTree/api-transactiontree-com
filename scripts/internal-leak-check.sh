@@ -99,7 +99,7 @@ scan "BORMC admin paths" \
   '/(webtools|webtools-test|accounting|partymgr|workeffort|content)/control/'
 
 scan "local file paths" \
-  '([A-Z]:/Users/|[A-Z]:\\\\Users\\\\|/home/[a-z0-9_-]+/)'
+  '([A-Z]:/Users/|[A-Z]:\\\\Users\\\\|/home/[a-z0-9_-]+/|(?<![A-Za-z0-9/])/Users/[A-Za-z0-9._-]+/)'
 
 # --- credentials ----------------------------------------------------------------------
 scan "known stale credentials (audit 2026-05-28)" \
@@ -113,7 +113,7 @@ scan "literal username / password in a URL" \
 
 # Any non-placeholder value after a credential key in a body (JSON, XML or query style)
 scan "literal credential inside a body string" \
-  '(access_?token(key)?|sectoken|client_?(secret|password)|api[_-]?key|x-tenant-key|x-auth-token|subscription-key|password|\btoken)(\\?"\s*:\s*\\?"|>|=)(?!'"$PH"'|\\?"|</)(&lt;|<)?[^"\\<&\s]{4,}'
+  '(access_?token(key)?|sectoken|client_?(secret|password)|api[_-]?key|x-tenant-key|x-auth-token|subscription-key|password|\btoken)(\\?"\s*:\s*\\?"|&gt;|>|=)(?!'"$PH"'|\\?"|</|&lt;/)(&lt;|<)?[^"\\<&\s]{4,}'
 
 CRED_KEYS='^(sectoken|accessTokenKey|X-tenant-Key|access_?token|accessToken|refresh_?token|token|x-auth-token|.*subscription-key|client_?secret|clientSecret|client_?password|secret|authorization|cookie|username|.*api[-_]?key|[a-z_]*pass(word)?)$'
 
