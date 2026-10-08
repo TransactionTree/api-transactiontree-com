@@ -1,25 +1,22 @@
 # Gitleaks config for api.transactiontree.com
-# Extends the default ruleset. Allowlist exists ONLY for known stale strings
-# carried over from the initial portal mirror — these get removed in PR #1
-# (cleanup), after which this allowlist should be deleted entirely.
+# Extends the default ruleset. No allowlist: the stale credentials from the
+# initial portal mirror were scrubbed, so nothing in the collection is exempt.
+#
+# scripts/internal-leak-check.sh is the primary guard for TT-specific content
+# (it parses the JSON with jq, so it sees key/value pairs that span lines).
+# These rules are a second, regex-only layer. Plain capturing groups only.
 
 [extend]
 useDefault = true
 
 [[rules]]
-id = "tt-stale-sectoken-placeholder"
-description = "Stale sectoken values present in initial mirror"
-# Match the specific repeated base64 sectoken prefix from the audit
-regex = '''UmlTUmV5VTZNRnpwT0p3OERmbXNleU9WM3JaMkZQaTFt'''
+id = "vrg-sectoken-literal"
+description = "Literal VRG sectoken value (use the {{sectoken}} variable instead)"
+regex = '''sectoken=[A-Za-z0-9+/=%_-]{16,}'''
 keywords = ["sectoken"]
 
-[allowlist]
-description = "Known stale strings from the initial portal mirror — TODO remove with PR #1 cleanup"
-regexes = [
-  '''peterparker''',
-  '''pparkertt33''',
-  '''UmlTUmV5VTZNRnpwT0p3OERmbXNleU9W''',
-]
-paths = [
-  '''postman/collection\.json''',
-]
+[[rules]]
+id = "postman-credential-literal"
+description = "Literal credential in a Postman key/value pair (use {{variable}} or <string>)"
+regex = '''(?i)"key"\s*:\s*"(sectoken|accessTokenKey|X-tenant-Key|access_token|client_password|client_secret|[a-z_]*api[_-]?key|[a-z_]*pass[a-z_]*)"\s*,\s*"value"\s*:\s*"[^"<{][^"]{3,}"'''
+keywords = ["sectoken", "accesstokenkey", "x-tenant-key", "access_token", "client_", "key", "pass"]

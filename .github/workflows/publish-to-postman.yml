@@ -20,11 +20,13 @@ on:
         options: ["false", "true"]
 
 permissions:
-  contents: read
+  contents: write   # only to move the `postman-published` tag after a verified publish
 
 env:
-  # Postman collection that backs https://api.transactiontree.com
-  POSTMAN_COLLECTION_ID: "6363906-51a49200-876e-409b-9fcb-fda943672a22"
+  # Postman collection that backs https://api.transactiontree.com (published doc id 2sBYAq1Dve).
+  # Verified 2026-10-08 from the portal page's collectionId. The old 6363906-51a49200-… collection
+  # is "TransactionTree - LEGACY" and is no longer published.
+  POSTMAN_COLLECTION_ID: "6363906-32d79127-a4bd-4cf8-8d88-1357be996089"
   COLLECTION_FILE: "postman/collection.json"
 
 jobs:
@@ -32,7 +34,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0   # needs the `postman-published` tag
+
+      - name: Real publishes only from main
+        if: ${{ inputs.dry_run != 'true' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "::error::Publishing writes the live portal, so it only runs from main. Use dry_run=true on branches."
+          exit 1
 
       - name: Validate JSON parses
         run: |
@@ -43,19 +53,50 @@ jobs:
         run: bash scripts/internal-leak-check.sh "$COLLECTION_FILE"
 
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.18.4
+          GITLEAKS_SHA256: ba6dbb656933921c775ee5a2d1c13a91046e7952e9d919f9bac4cec61d628e7d
+        run: |
+          curl -sSfL -o gitleaks.tar.gz "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks && rm gitleaks.tar.gz
+          ./gitleaks detect --source . --no-git --config .gitleaks.toml --redact --verbose
+
+      - name: Read the live Postman collection
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: |
+          if [[ -z "$POSTMAN_API_KEY" ]]; then
+            echo "::error::POSTMAN_API_KEY secret is not set — configure in repo settings before publishing."
+            exit 1
+          fi
+          # Saved outside the checkout so gitleaks never scans it and nothing uploads it.
+          http_status=$(curl -sS -o "$RUNNER_TEMP/live-before.json" -w "%{http_code}" \
+            -H "X-Api-Key: $POSTMAN_API_KEY" \
+            "https://api.getpostman.com/collections/$POSTMAN_COLLECTION_ID")
+          if [[ "$http_status" != "200" ]]; then
+            echo "::error::Could not read the live collection (HTTP $http_status)"
+            exit 1
+          fi
+
+      - name: Refuse to overwrite anything changed in Postman
+        # With a baseline (the collection as last published, at tag `postman-published`): fails if the live
+        # collection differs in ANY way from it — someone edited Postman directly and publishing would
+        # overwrite their edit. First publish (no tag yet): fails if live has any folder, request, saved
+        # example or variable the repo lacks.
+        run: |
+          if git rev-parse -q --verify refs/tags/postman-published >/dev/null; then
+            git show postman-published:postman/collection.json > "$RUNNER_TEMP/last-published.json"
+            python3 scripts/postman_guard.py drift "$RUNNER_TEMP/live-before.json" "$COLLECTION_FILE" "$RUNNER_TEMP/last-published.json"
+          else
+            python3 scripts/postman_guard.py drift "$RUNNER_TEMP/live-before.json" "$COLLECTION_FILE"
+          fi
 
       - name: Push to Postman
         if: ${{ inputs.dry_run != 'true' }}
         env:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
         run: |
-          if [[ -z "$POSTMAN_API_KEY" ]]; then
-            echo "::error::POSTMAN_API_KEY secret is not set — configure in repo settings before merging."
-            exit 1
-          fi
           # The Postman PUT endpoint expects the body shape {"collection": <full collection object>}.
           # Our file already wraps under .collection at the top level (that's what the GET endpoint returns),
           # so we can use it directly.
@@ -72,6 +113,22 @@ jobs:
             echo "::error::Postman PUT failed with HTTP $http_status"
             exit 1
           fi
+
+      - name: Confirm Postman now matches the repo
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: |
+          curl -sSf -o "$RUNNER_TEMP/live-after.json" -H "X-Api-Key: $POSTMAN_API_KEY" \
+            "https://api.getpostman.com/collections/$POSTMAN_COLLECTION_ID"
+          python3 scripts/postman_guard.py match "$COLLECTION_FILE" "$RUNNER_TEMP/live-after.json"
+
+      - name: Record what was published
+        if: ${{ inputs.dry_run != 'true' }}
+        # The next publish compares the live collection against this commit's file.
+        run: |
+          git tag -f postman-published "$GITHUB_SHA"
+          git push -f origin refs/tags/postman-published
 
       - name: Dry run notice
         if: ${{ inputs.dry_run == 'true' }}
