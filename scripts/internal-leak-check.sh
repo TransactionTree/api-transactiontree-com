@@ -43,12 +43,27 @@ scan "internal-only hostnames" \
 scan "BORMC admin paths" \
   '/(webtools|webtools-test|accounting|partymgr|workeffort|content)/control/'
 
-# NOTE: the initial mirror (PR #0) contains known stale credentials
-# (peterparker, pparkertt33) from the 2026-05-28 audit. After the cleanup PR
-# removes them from the collection, add this back to prevent reintroduction:
-#
-#   scan "known stale credentials (audit 2026-05-28)" \
-#     '(peterparker|pparkertt33)'
+# Known stale credentials from the initial mirror (scrubbed) -- must never return
+scan "known stale credentials (audit 2026-05-28)" \
+  '(peterparker|pparkertt33)'
+
+# Literal VRG security tokens -- examples must use the {{sectoken}} variable
+scan "literal VRG sectoken" \
+  'sectoken=[A-Za-z0-9+/=%_-]{16,}'
+
+# Customer branding / hosts that must not appear in public examples
+scan "customer-identifying hosts" \
+  '\b(princessauto\.com|spencers\.scene7\.com|storesmail\.com|sandbox_(arcthrift|harmons|princess|cititrends|rona|wnp|wwg|spencer)[a-z]*\.receiptx\.com|devtest\.receiptx\.com)\b'
+
+# Recorded session cookies
+scan "recorded session cookies" \
+  'JSESSIONID=0*[1-9A-F][0-9A-F]{7,}'
+
+# Example email addresses must use placeholder domains (warn-only)
+if grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}' "$TARGET" | grep -viE '@(example\.(com|org|net)|domain\.com|email\.com|gamil\.com|transctiontree\.com)$|^support@transactiontree\.com$' | grep -q .; then
+  echo "WARN — email addresses outside placeholder domains (manual review needed):"
+  grep -oE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}' "$TARGET" | grep -viE '@(example\.(com|org|net)|domain\.com|email\.com|gamil\.com|transctiontree\.com)$|^support@transactiontree\.com$' | sort -u | sed 's/^/    /'
+fi
 
 # Generic password fields with non-placeholder values
 # (matches "password":"..." but allows obvious placeholders)
