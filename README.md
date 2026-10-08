@@ -30,21 +30,27 @@ GitHub PR merged to main
         ▼  maintainer: Actions → publish-to-postman → Run workflow  (manual, workflow_dispatch only)
 .github/workflows/publish-to-postman.yml
         │
+        ├─ Real publishes run only from main (dry runs work on any branch)
         ├─ Validates collection.json parses
         ├─ Runs the internal-leak scan and gitleaks
-        ├─ Reads the live Postman collection and REFUSES TO PUBLISH if it contains any folder,
-        │  request or saved example that this repo does not (someone edited Postman directly —
-        │  publishing would delete it)
+        ├─ Reads the live Postman collection and REFUSES TO PUBLISH if it changed in any way since the
+        │  last publish (compared with the file at git tag `postman-published`): an edited description,
+        │  body, header, script, auth block, variable, or an added/removed folder, request or example.
+        │  Before the first publish there is no tag, so it checks structure only: live may not have any
+        │  folder, request, saved example or variable that this repo lacks.
         │
         ▼
 PUT https://api.getpostman.com/collections/{id}
         │
-        ├─ Reads the collection back and confirms Postman now matches the repo exactly
+        ├─ Reads the collection back and confirms Postman now holds exactly this file's content
+        ├─ Moves the `postman-published` tag to this commit
         ▼
 api.transactiontree.com portal updates within ~1 minute
 ```
 
-Edits to the published portal must come through this repo. If something was changed directly in Postman, the publish stops instead of overwriting it: export the collection from Postman, put it in `postman/collection.json`, run the leak scan, and open a PR.
+Edits to the published portal must come through this repo. If something was changed directly in Postman, the publish stops and lists what changed instead of overwriting it: export the collection from Postman, put it in `postman/collection.json`, run the leak scan, and open a PR.
+
+Comparisons ignore only Postman's timestamps and record ids (`updatedAt`, `createdAt`, `lastUpdatedBy`, `owner`, `fork`, `uid`). A round trip through Postman returns everything else unchanged.
 
 ## Local development
 
@@ -52,7 +58,7 @@ Edits to the published portal must come through this repo. If something was chan
 2. Run the pre-publish scan: `bash scripts/internal-leak-check.sh postman/collection.json` (needs `jq` and GNU `grep -P`).
 3. Open a PR. CI runs the same scans plus JSON validation.
 
-`scripts/postman_guard.py drift <live.json> <repo.json>` and `… match <repo.json> <live.json>` are the publish-time checks; they print names and ids only.
+`scripts/postman_guard.py drift <live.json> <repo.json> [<last-published.json>]` and `… match <repo.json> <live.json>` are the publish-time checks; they print item paths only, never values.
 
 ## License
 

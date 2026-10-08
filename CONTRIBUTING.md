@@ -17,7 +17,7 @@ Thanks for considering a contribution. This repo is the source of truth for the 
 6. CODEOWNERS review required before merge.
 7. After merge to `main`, a maintainer runs the `publish-to-postman` workflow (manual `workflow_dispatch`) to sync the collection to Postman. Merging alone does not publish.
 
-**Do not edit the collection directly in Postman.** The repo is the source. If Postman has anything the repo does not (a folder, request or saved example), the publish workflow refuses to run rather than delete it. To recover, export the collection from Postman into `postman/collection.json`, run the leak scan, and open a PR.
+**Do not edit the collection directly in Postman.** The repo is the source. If the live collection changed in any way since the last publish, the publish workflow refuses to run and lists what changed, rather than overwrite it. To recover, export the collection from Postman into `postman/collection.json`, run the leak scan, and open a PR.
 
 ## What belongs here
 
@@ -29,7 +29,7 @@ Thanks for considering a contribution. This repo is the source of truth for the 
 - TT environment hosts (`*.receiptx.com`, `*.bormc.com`, `*.vrgs.io`, `*.cust360.ai`, `*.digivize.ai`, `*.ltschat.com`, `*.lynxs.*`). Use the variables `{{RIGbaseURL}}`, `{{C360URL}}`, `{{MMURL}}`, `{{DigivizeBaseURL}}`, or the example hosts `rig.` / `c360.` / `mm.` / `digivize.sandbox.example.com`
 - Customer names, brands, store details, product text or endpoint paths that reveal which customer uses what (use `Example Retailer`, `example-retailer.com`)
 - PII in example payloads or recorded responses. The CI scanner accepts only these synthetic values:
-  - names: `Test` / `Customer` / `Test Customer` / `Associate, Sample` (or a placeholder)
+  - names: `Test` / `Customer` / `Test Customer` / `Associate, Sample`, or `Nobody` / `Unknown` for a "not found" example (or a placeholder)
   - emails: `@example.com` addresses, plus the documented email-validation fixtures
   - phones: the fictional `555-0100`–`555-0199` range, any format (e.g. `5555550100`, `+1 201-555-0100`)
   - session values: zeroed (`JSESSIONID=000…`, `00000000-0000-0000-0000-000000000000`, `OFBiz.Visitor=10000`)

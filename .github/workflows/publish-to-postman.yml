@@ -20,7 +20,7 @@ on:
         options: ["false", "true"]
 
 permissions:
-  contents: read
+  contents: write   # only to move the `postman-published` tag after a verified publish
 
 env:
   # Postman collection that backs https://api.transactiontree.com (published doc id 2sBYAq1Dve).
@@ -35,6 +35,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0   # needs the `postman-published` tag
+
+      - name: Real publishes only from main
+        if: ${{ inputs.dry_run != 'true' && github.ref != 'refs/heads/main' }}
+        run: |
+          echo "::error::Publishing writes the live portal, so it only runs from main. Use dry_run=true on branches."
+          exit 1
 
       - name: Validate JSON parses
         run: |
@@ -71,10 +79,18 @@ jobs:
             exit 1
           fi
 
-      - name: Refuse to drop anything that is live
-        # Fails if Postman has any folder, request or saved example that this repo does not,
-        # i.e. someone edited the collection directly in Postman. Publishing would delete it.
-        run: python3 scripts/postman_guard.py drift "$RUNNER_TEMP/live-before.json" "$COLLECTION_FILE"
+      - name: Refuse to overwrite anything changed in Postman
+        # With a baseline (the collection as last published, at tag `postman-published`): fails if the live
+        # collection differs in ANY way from it — someone edited Postman directly and publishing would
+        # overwrite their edit. First publish (no tag yet): fails if live has any folder, request, saved
+        # example or variable the repo lacks.
+        run: |
+          if git rev-parse -q --verify refs/tags/postman-published >/dev/null; then
+            git show postman-published:postman/collection.json > "$RUNNER_TEMP/last-published.json"
+            python3 scripts/postman_guard.py drift "$RUNNER_TEMP/live-before.json" "$COLLECTION_FILE" "$RUNNER_TEMP/last-published.json"
+          else
+            python3 scripts/postman_guard.py drift "$RUNNER_TEMP/live-before.json" "$COLLECTION_FILE"
+          fi
 
       - name: Push to Postman
         if: ${{ inputs.dry_run != 'true' }}
@@ -106,6 +122,13 @@ jobs:
           curl -sSf -o "$RUNNER_TEMP/live-after.json" -H "X-Api-Key: $POSTMAN_API_KEY" \
             "https://api.getpostman.com/collections/$POSTMAN_COLLECTION_ID"
           python3 scripts/postman_guard.py match "$COLLECTION_FILE" "$RUNNER_TEMP/live-after.json"
+
+      - name: Record what was published
+        if: ${{ inputs.dry_run != 'true' }}
+        # The next publish compares the live collection against this commit's file.
+        run: |
+          git tag -f postman-published "$GITHUB_SHA"
+          git push -f origin refs/tags/postman-published
 
       - name: Dry run notice
         if: ${{ inputs.dry_run == 'true' }}

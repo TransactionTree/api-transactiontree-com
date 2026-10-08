@@ -142,8 +142,9 @@ scan "customer-identifying names / hosts" \
   '(princess ?auto|\bPAL\b|spencers?(online)?\b|scene7\.com|arc ?thrift|citi ?trends|harmons|world ?wide ?golf|lowes ?foods|alex ?lee|bass ?pro|cabela|trader ?joe|half ?price ?books|familiprix|goodwill|\bhertz\b|\bthrifty\b|\brona\b|\bwnpa?\b|western ?national|eastside ?sports|\bmuji\b|crazy ?shirts)'
 
 # Names in XML tags (raw or HTML-escaped in descriptions), JSON keys and query params.
-# Allowed: Test / Customer / Test Customer / Associate, Sample, empty, or a placeholder.
-NAME_OK='(Test|Customer|Test Customer|Associate, Sample|String|'"$PH"'|)'
+# Allowed: Test / Customer / Test Customer / Associate, Sample, Nobody / Unknown (a "not found" example),
+# empty, or a placeholder.
+NAME_OK='(Test|Customer|Test Customer|Associate, Sample|Nobody|Unknown|String|'"$PH"'|)'
 NAME_TAGS='(first_?name|last_?name|middle_?name|customer_?name|to_name|from_name|contact_name|employee_name|sales_associate|original_sales_associate)'
 scan "person name in a name field (use Test / Customer / Associate, Sample)" \
   '<'"$NAME_TAGS"'>(?!'"$NAME_OK"'<)[^<]+|&lt;'"$NAME_TAGS"'&gt;(?!'"$NAME_OK"'&lt;)[^&]+|<associate_id>(?!(\d*|Associate, Sample|'"$PH"')<)[^<]+|\\?"(first_?name|last_?name)\\?"\s*:\s*\\?"(?!'"$NAME_OK"'\\?")[^"\\]+|[?&](first|last)_?name=(?!(Test|Customer)\b|'"$PH"')[^&"\\\s]+'
