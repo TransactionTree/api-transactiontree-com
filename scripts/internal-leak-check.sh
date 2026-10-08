@@ -19,6 +19,11 @@ if [[ ! -f "$TARGET" ]]; then
   exit 2
 fi
 
+# A missing tool must fail the check, never let it pass silently.
+command -v jq >/dev/null || { echo "internal-leak-check: jq is required" >&2; exit 2; }
+echo x | grep -qP 'x' 2>/dev/null || { echo "internal-leak-check: grep -P (PCRE) is required" >&2; exit 2; }
+jq -e . "$TARGET" >/dev/null 2>&1 || { echo "internal-leak-check: $TARGET is not valid JSON" >&2; exit 2; }
+
 hits=0
 
 mask() {
@@ -50,9 +55,22 @@ scan_pcre() {
   report "$1" "$matches"
 }
 
+# scan_jq LABEL JQ-FILTER  (filter emits offending strings; jq failure = FAIL)
+scan_jq() {
+  local out
+  if ! out=$(jq -r "$2" "$TARGET"); then
+    report "$1 (jq filter failed)" "jq-error"
+    return
+  fi
+  report "$1" "$(echo "$out" | sed '/^$/d' | sort -u)"
+}
+
+# A value is a placeholder if it is empty, a <placeholder>, or contains {{variable}}.
+NOT_PLACEHOLDER='(tostring | test("^$|^<|\\{\\{") | not)'
+
 # --- infrastructure -------------------------------------------------------------------
-scan "internal IPv4 (RFC1918 + TT Flexential /27)" \
-  '(\b10\.0\.0\.[0-9]{1,3}\b|\b10\.10\.0\.[0-9]{1,3}\b|\b192\.168\.[0-9]{1,3}\.[0-9]{1,3}\b|\b128\.136\.200\.[0-9]{1,3}\b|\b208\.93\.113\.[0-9]{1,3}\b)'
+scan "private / TT IPv4" \
+  '(\b10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\b|\b172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}\b|\b192\.168\.[0-9]{1,3}\.[0-9]{1,3}\b|\b128\.136\.200\.[0-9]{1,3}\b|\b208\.93\.113\.[0-9]{1,3}\b)'
 
 scan "internal-only hostnames" \
   '\b([a-z0-9-]+\.)?(lynxs\.local|lynxs\.cloud|lynxs\.network|bormc\.io)\b'
@@ -63,6 +81,9 @@ scan "TT environment hosts (use a {{...URL}} variable or sandbox.example.com)" \
 scan "BORMC admin paths" \
   '/(webtools|webtools-test|accounting|partymgr|workeffort|content)/control/'
 
+scan "local file paths" \
+  '([A-Z]:/Users/|[A-Z]:\\\\Users\\\\|/home/[a-z0-9_-]+/)'
+
 # --- credentials ----------------------------------------------------------------------
 scan "known stale credentials (audit 2026-05-28)" \
   '(peterparker|pparkertt33)'
@@ -71,20 +92,23 @@ scan "literal VRG sectoken in a URL" \
   'sectoken=[A-Za-z0-9+/=%_-]{16,}'
 
 # Postman key/value pairs (headers, query params, variables) span lines, so use jq.
-# An empty value, a {{variable}} or a <placeholder> passes.
-report "literal credential in a key/value pair (use {{variable}} or <string>)" "$(
-  jq -r '[.. | objects | select(has("key") and has("value"))]
-         | map(select((.key | tostring | test("^(sectoken|accessTokenKey|X-tenant-Key|access_token|client_password|[a-z_]*pass(word)?)$"; "i"))
-                      and (.value | tostring | test("^(\\{\\{|<|$)") | not)))
-         | .[].value' "$TARGET" 2>/dev/null | sort -u
-)"
+scan_jq "literal credential in a key/value pair (use {{variable}} or <string>)" \
+  "[.. | objects | select(has(\"key\") and has(\"value\"))
+    | select((.key | tostring | test(\"^(sectoken|accessTokenKey|X-tenant-Key|access_token|client_password|client_secret|authorization|cookie|token|api_?key|[a-z_]*pass(word)?)\$\"; \"i\")) and (.value | $NOT_PLACEHOLDER))
+    | .value] | .[] | tostring"
+
+# Auth blocks store the secret under key value/token/password (e.g. apikey/bearer/basic).
+scan_jq "literal credential in an auth block" \
+  "[.. | objects | select(has(\"auth\")) | .auth | objects | to_entries[] | select(.key != \"type\") | .value | arrays | .[]
+    | select((.key | tostring | test(\"^(value|token|password|username)\$\")) and (.value | $NOT_PLACEHOLDER))
+    | .value] | .[] | tostring"
 
 scan "recorded session cookies" \
   'JSESSIONID=0*[1-9A-F][0-9A-F]{7,}'
 
 # --- customers & people ---------------------------------------------------------------
 scan "customer-identifying names / hosts" \
-  '(princess ?auto|princessauto\.com|spencers?\b|scene7\.com|arc ?thrift|citi ?trends|harmons|worldwide golf|lowes foods|alex lee|bass pro|cabela)'
+  '(princess ?auto|princessauto\.com|\bPAL\b|spencers?\b|scene7\.com|arc ?thrift|citi ?trends|harmons|worldwide golf|lowes foods|alex lee|bass pro|cabela|\bhertz\b|\brona\b|\bwnp\b|western national|eastside sports|\bmuji\b|crazy shirts)'
 
 # Emails: only placeholder domains plus the documented validation fixtures
 scan_pcre "email outside placeholder domains" \
