@@ -43,9 +43,11 @@ jobs:
         run: bash scripts/internal-leak-check.sh "$COLLECTION_FILE"
 
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.18.4
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar -xz gitleaks
+          ./gitleaks detect --source . --no-git --config .gitleaks.toml --redact --verbose
 
       - name: Push to Postman
         if: ${{ inputs.dry_run != 'true' }}
