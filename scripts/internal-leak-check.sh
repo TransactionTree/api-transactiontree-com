@@ -76,8 +76,9 @@ scan_jq() {
 
 # A placeholder is empty, a whole <placeholder>, a whole {{variable}}, or "Basic/Bearer {{variable}}".
 PLACEHOLDER='test("^$|^<[^<>]+>$|^\\{\\{[^{}]+\\}\\}$|^(Basic|Bearer) \\{\\{[^{}]+\\}\\}$")'
-# Same idea inside free text (PCRE negative lookahead body)
-PH='\{\{[^{}]+\}\}|<[^<>]+>|&lt;[^&]+&gt;'
+# Same idea inside free text (PCRE negative lookahead body). A placeholder only counts if
+# the field ends right after it, so "<secret-value" or "<string>literal" are not exempt.
+PH='(\{\{[^{}]+\}\}|<[^<>]+>|&lt;[^&]+&gt;)(?=$|["&\s\\<;,)])'
 
 # --- infrastructure -------------------------------------------------------------------
 scan "private / TT / CGNAT IPv4" \
@@ -112,7 +113,7 @@ scan "literal username / password in a URL" \
 
 # Any non-placeholder value after a credential key in a body (JSON, XML or query style)
 scan "literal credential inside a body string" \
-  '(access_?token(key)?|sectoken|client_?(secret|password)|api[_-]?key|x-tenant-key|x-auth-token|subscription-key|password|\btoken)(\\?"\s*:\s*\\?"|>|=)(?!'"$PH"'|\\?"|<)[^"\\<&\s]{4,}'
+  '(access_?token(key)?|sectoken|client_?(secret|password)|api[_-]?key|x-tenant-key|x-auth-token|subscription-key|password|\btoken)(\\?"\s*:\s*\\?"|>|=)(?!'"$PH"'|\\?"|</)(&lt;|<)?[^"\\<&\s]{4,}'
 
 CRED_KEYS='^(sectoken|accessTokenKey|X-tenant-Key|access_?token|accessToken|refresh_?token|token|x-auth-token|.*subscription-key|client_?secret|clientSecret|client_?password|secret|authorization|cookie|username|.*api[-_]?key|[a-z_]*pass(word)?)$'
 
