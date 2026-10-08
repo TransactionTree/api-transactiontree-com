@@ -17,6 +17,8 @@ Thanks for considering a contribution. This repo is the source of truth for the 
 6. CODEOWNERS review required before merge.
 7. After merge to `main`, a maintainer runs the `publish-to-postman` workflow (manual `workflow_dispatch`) to sync the collection to Postman. Merging alone does not publish.
 
+**Do not edit the collection directly in Postman.** The repo is the source. If Postman has anything the repo does not (a folder, request or saved example), the publish workflow refuses to run rather than delete it. To recover, export the collection from Postman into `postman/collection.json`, run the leak scan, and open a PR.
+
 ## What belongs here
 
 ✅ Public API endpoints, example requests/responses, schemas, descriptions, conventions.
@@ -24,7 +26,7 @@ Thanks for considering a contribution. This repo is the source of truth for the 
 ❌ **Do not commit**:
 - Real API keys, sectokens, tenant keys, or passwords. Use the collection variables (`{{sectoken}}`, `{{password}}`, `{{accessTokenKey}}`, `{{X-tenant-Key}}`) or a whole placeholder like `<string>`
 - Internal IP addresses (`10.x.x.x`, `172.16–31.x.x`, `192.168.x.x`, `100.64–127.x.x`)
-- TT environment hosts (`*.receiptx.com`, `*.bormc.com`, `*.lynxs.*`). Use `{{VRGbaseURL}}`, `{{MMURL}}`, `{{BORMCURL}}` or `sandbox.example.com`
+- TT environment hosts (`*.receiptx.com`, `*.bormc.com`, `*.vrgs.io`, `*.cust360.ai`, `*.digivize.ai`, `*.ltschat.com`, `*.lynxs.*`). Use the variables `{{RIGbaseURL}}`, `{{C360URL}}`, `{{MMURL}}`, `{{DigivizeBaseURL}}`, or the example hosts `rig.` / `c360.` / `mm.` / `digivize.sandbox.example.com`
 - Customer names, brands, store details, product text or endpoint paths that reveal which customer uses what (use `Example Retailer`, `example-retailer.com`)
 - PII in example payloads or recorded responses. The CI scanner accepts only these synthetic values:
   - names: `Test` / `Customer` / `Test Customer` / `Associate, Sample` (or a placeholder)

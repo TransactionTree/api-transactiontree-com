@@ -23,8 +23,10 @@ permissions:
   contents: read
 
 env:
-  # Postman collection that backs https://api.transactiontree.com
-  POSTMAN_COLLECTION_ID: "6363906-51a49200-876e-409b-9fcb-fda943672a22"
+  # Postman collection that backs https://api.transactiontree.com (published doc id 2sBYAq1Dve).
+  # Verified 2026-10-08 from the portal page's collectionId. The old 6363906-51a49200-… collection
+  # is "TransactionTree - LEGACY" and is no longer published.
+  POSTMAN_COLLECTION_ID: "6363906-32d79127-a4bd-4cf8-8d88-1357be996089"
   COLLECTION_FILE: "postman/collection.json"
 
 jobs:
@@ -52,15 +54,33 @@ jobs:
           tar -xzf gitleaks.tar.gz gitleaks && rm gitleaks.tar.gz
           ./gitleaks detect --source . --no-git --config .gitleaks.toml --redact --verbose
 
+      - name: Read the live Postman collection
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: |
+          if [[ -z "$POSTMAN_API_KEY" ]]; then
+            echo "::error::POSTMAN_API_KEY secret is not set — configure in repo settings before publishing."
+            exit 1
+          fi
+          # Saved outside the checkout so gitleaks never scans it and nothing uploads it.
+          http_status=$(curl -sS -o "$RUNNER_TEMP/live-before.json" -w "%{http_code}" \
+            -H "X-Api-Key: $POSTMAN_API_KEY" \
+            "https://api.getpostman.com/collections/$POSTMAN_COLLECTION_ID")
+          if [[ "$http_status" != "200" ]]; then
+            echo "::error::Could not read the live collection (HTTP $http_status)"
+            exit 1
+          fi
+
+      - name: Refuse to drop anything that is live
+        # Fails if Postman has any folder, request or saved example that this repo does not,
+        # i.e. someone edited the collection directly in Postman. Publishing would delete it.
+        run: python3 scripts/postman_guard.py drift "$RUNNER_TEMP/live-before.json" "$COLLECTION_FILE"
+
       - name: Push to Postman
         if: ${{ inputs.dry_run != 'true' }}
         env:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
         run: |
-          if [[ -z "$POSTMAN_API_KEY" ]]; then
-            echo "::error::POSTMAN_API_KEY secret is not set — configure in repo settings before merging."
-            exit 1
-          fi
           # The Postman PUT endpoint expects the body shape {"collection": <full collection object>}.
           # Our file already wraps under .collection at the top level (that's what the GET endpoint returns),
           # so we can use it directly.
@@ -77,6 +97,15 @@ jobs:
             echo "::error::Postman PUT failed with HTTP $http_status"
             exit 1
           fi
+
+      - name: Confirm Postman now matches the repo
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        run: |
+          curl -sSf -o "$RUNNER_TEMP/live-after.json" -H "X-Api-Key: $POSTMAN_API_KEY" \
+            "https://api.getpostman.com/collections/$POSTMAN_COLLECTION_ID"
+          python3 scripts/postman_guard.py match "$COLLECTION_FILE" "$RUNNER_TEMP/live-after.json"
 
       - name: Dry run notice
         if: ${{ inputs.dry_run == 'true' }}

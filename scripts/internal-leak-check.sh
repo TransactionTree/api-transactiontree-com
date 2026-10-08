@@ -90,12 +90,12 @@ scan "internal-only hostnames" \
   '\b([a-z0-9-]+\.)?(lynxs\.local|lynxs\.cloud|lynxs\.network|bormc\.io)\b'
 
 scan "TT environment hosts (use a {{...URL}} variable or sandbox.example.com)" \
-  '\b[a-z0-9_-]+\.(receiptx\.com|bormc\.com|storesmail\.com|digivize\.ai)\b|\b(?!www\.|api\.)[a-z0-9_-]+\.transactiontree\.com\b'
+  '\b([a-z0-9_-]+\.)*(receiptx\.com|bormc\.com|storesmail\.com|digivize\.ai|vrgs\.io|cust360\.ai|ltschat\.com)\b|\b(?!www\.|api\.)[a-z0-9_-]+\.transactiontree\.com\b'
 
 # Postman also stores hosts split into arrays ("ptest1","storesmail","com"), which text scans miss.
 scan_jq "TT / internal host in a url.host array" \
   '[.. | objects | select(has("host") and (.host | type == "array")) | .host | map(tostring) | join(".")
-    | select(test("(receiptx|bormc|storesmail)\\.com|digivize\\.ai|lynxs\\.|bormc\\.io|^(10|192\\.168|172\\.(1[6-9]|2[0-9]|3[01])|100\\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])|128\\.136\\.200|208\\.93\\.113)\\.|(^|\\.)(?!www\\.|api\\.)[a-z0-9_-]+\\.transactiontree\\.com$"; "i"))] | .[]'
+    | select(test("(receiptx|bormc|storesmail|ltschat)\\.com|digivize\\.ai|vrgs\\.io|cust360\\.ai|lynxs\\.|bormc\\.io|^(10|192\\.168|172\\.(1[6-9]|2[0-9]|3[01])|100\\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])|128\\.136\\.200|208\\.93\\.113)\\.|(^|\\.)(?!www\\.|api\\.)[a-z0-9_-]+\\.transactiontree\\.com$"; "i"))] | .[]'
 
 scan "BORMC admin paths" \
   '/(webtools|webtools-test|accounting|partymgr|workeffort|content)/control/'

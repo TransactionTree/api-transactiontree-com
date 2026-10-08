@@ -2,49 +2,57 @@
 
 Source of truth for the [TransactionTree API documentation portal](https://api.transactiontree.com).
 
-The published portal at `https://api.transactiontree.com` is rendered by Postman from the collection in this repo. After a change is merged to `main`, a maintainer runs the **publish-to-postman** workflow by hand (Actions → publish-to-postman → Run workflow) to update the live portal. Merging alone does not publish.
+The portal at `https://api.transactiontree.com` is Postman's published documentation for the Postman collection **`TransactionTree`** (`6363906-32d79127-a4bd-4cf8-8d88-1357be996089`, published doc id `2sBYAq1Dve`). `postman/collection.json` in this repo is that collection. After a change is merged to `main`, a maintainer runs the **publish-to-postman** workflow by hand (Actions → publish-to-postman → Run workflow) to update the live portal. Merging alone does not publish.
+
+> Before 2026-10-08 this repo mirrored an older collection (`6363906-51a49200-…`, now named "TransactionTree - LEGACY" and no longer published) while the live collection was edited directly in Postman. The repo now holds the live collection; edit it here, not in Postman.
 
 ## What's documented here
 
 | Folder | API |
 |---|---|
-| Overview | Platform overview, common conventions |
-| Virtual Receipt Gateway (VRG) | Digital receipt delivery API — `/VRG/*` endpoints |
-| BranchedOut Retail Marketing Cloud | Legacy marketing platform (predecessor to Digivize) |
+| Overview | Platform overview, credentials and security, common conventions |
+| Retail Integration Gateway (RIG) | Digital receipt and customer API (formerly VRG) — `/VRG/*` endpoints |
+| Customer360 | Customer, orders, loyalty, coupons, gift cards, products, returns, privacy (formerly BORMC) |
 | MessageManager | Transactional messaging API |
+| Digivize | Campaigns, contacts, SMS/MMS, email, events, PIM, storage, templates, validation, webhooks |
+
+Example hosts are deliberately generic (`rig.sandbox.example.com`, `c360.sandbox.example.com`, `mm.sandbox.example.com`, `digivize.sandbox.example.com`). Integrators receive their real sandbox and production hosts with their credentials.
 
 ## Contributing
 
 External integrators and TT staff are both welcome to contribute. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow. Security issues should go through [private disclosure](SECURITY.md), not public issues.
 
-## How the sync works
+## How publishing works
 
 ```
 GitHub PR merged to main
         │
-        ▼  (maintainer: Actions → Run workflow; manual, workflow_dispatch only)
+        ▼  maintainer: Actions → publish-to-postman → Run workflow  (manual, workflow_dispatch only)
 .github/workflows/publish-to-postman.yml
         │
         ├─ Validates collection.json parses
-        ├─ Runs internal-leak scan
-        ├─ Runs gitleaks secret scan
+        ├─ Runs the internal-leak scan and gitleaks
+        ├─ Reads the live Postman collection and REFUSES TO PUBLISH if it contains any folder,
+        │  request or saved example that this repo does not (someone edited Postman directly —
+        │  publishing would delete it)
         │
         ▼
 PUT https://api.getpostman.com/collections/{id}
         │
+        ├─ Reads the collection back and confirms Postman now matches the repo exactly
         ▼
 api.transactiontree.com portal updates within ~1 minute
 ```
 
-The Postman collection ID this repo syncs to is configured in the workflow file. Edits to the published portal must come through this repo — direct edits in the Postman UI will be overwritten on the next sync.
+Edits to the published portal must come through this repo. If something was changed directly in Postman, the publish stops instead of overwriting it: export the collection from Postman, put it in `postman/collection.json`, run the leak scan, and open a PR.
 
 ## Local development
 
-To test changes locally before opening a PR:
+1. Edit `postman/collection.json` (or open it in Postman, edit, then export back into the file).
+2. Run the pre-publish scan: `bash scripts/internal-leak-check.sh postman/collection.json` (needs `jq` and GNU `grep -P`).
+3. Open a PR. CI runs the same scans plus JSON validation.
 
-1. Edit `postman/collection.json` (or open it in Postman, edit, then export back into the file)
-2. Run the pre-publish scan: `scripts/internal-leak-check.sh postman/collection.json`
-3. Open a PR — CI runs the same scans plus JSON validation
+`scripts/postman_guard.py drift <live.json> <repo.json>` and `… match <repo.json> <live.json>` are the publish-time checks; they print names and ids only.
 
 ## License
 
