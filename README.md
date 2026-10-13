@@ -56,7 +56,11 @@ Comparisons ignore only Postman's timestamps and record ids (`updatedAt`, `creat
 
 1. Edit `postman/collection.json` (or open it in Postman, edit, then export back into the file).
 2. Run the pre-publish scan: `bash scripts/internal-leak-check.sh postman/collection.json` (needs `jq` and GNU `grep -P`).
-3. Open a PR. CI runs the same scans plus JSON validation.
+3. Check the Customer360 bodies and examples against the published schemas:
+   `python3 scripts/validate_against_schemas.py postman/collection.json <path to a clone of transactiontree-schemas>`
+   (needs `lxml` or `xmllint`). The portal links to those schemas, so a request body or saved example that
+   does not validate means one of the two is wrong.
+4. Open a PR. CI runs the same scans plus JSON validation and the schema check.
 
 `scripts/postman_guard.py drift <live.json> <repo.json> [<last-published.json>]` and `… match <repo.json> <live.json>` are the publish-time checks; they print item paths only, never values.
 
