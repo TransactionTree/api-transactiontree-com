@@ -6,8 +6,10 @@ collection against the published XSDs in TransactionTree/transactiontree-schemas
 
 The portal links to those schemas, so the two must agree. Each request whose endpoint has a
 published schema is checked:
-  - the XmlInput request body        -> <operation>-request.xsd
-  - every saved example response body -> <operation>-response*.xsd (any one may match)
+  - the XmlInput request body                  -> <operation>-request.xsd
+  - the request body saved with each example   -> <operation>-request.xsd
+    (skipped when the example shows an error code: those requests are often invalid on purpose)
+  - every saved example response body          -> <operation>-response*.xsd (any one may match)
 
 Postman variables such as {{today}} are replaced with sample values before validation.
 Uses lxml when it is installed, otherwise the `xmllint` command (libxml2-utils). Standard
@@ -40,6 +42,7 @@ SCHEMA_DIRS = {
 # Postman variables that need a specific sample value to satisfy an enumeration
 VARIABLE_SAMPLES = {'REQ_COUPON_TYPE': 'SERIALIZE'}
 DEFAULT_SAMPLE = '1'
+ERROR_CODE = re.compile(r'<RESPONSE_CODE>\s*E\d')
 
 try:
     from lxml import etree
@@ -131,6 +134,11 @@ def main():
         if body and body.strip():
             documents.append(('request body', body, request_xsds))
         for example in item.get('response') or []:
+            saved = request_xml(example.get('originalRequest') or {})
+            # An error example often exists to show a deliberately bad request (a wrong coupon
+            # type, an empty code), so its saved request is only checked for non-error examples.
+            if saved and saved.strip() and not ERROR_CODE.search(example.get('body') or ''):
+                documents.append(('request saved with example "%s"' % example.get('name'), saved, request_xsds))
             if (example.get('body') or '').strip():
                 documents.append(('example "%s"' % example.get('name'), example['body'], response_xsds))
 
