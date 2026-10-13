@@ -13,7 +13,7 @@ Thanks for considering a contribution. This repo is the source of truth for the 
 2. Edit `postman/collection.json` directly, or open it in Postman, edit, and export back into the file.
 3. Run the pre-publish scan locally: `scripts/internal-leak-check.sh postman/collection.json`
 4. Open a PR.
-5. CI runs JSON validation, the leak scan, and gitleaks. All must pass.
+5. CI runs JSON validation, the leak scan, gitleaks, and the schema-agreement check. All must pass.
 6. CODEOWNERS review required before merge.
 7. After merge to `main`, a maintainer runs the `publish-to-postman` workflow (manual `workflow_dispatch`) to sync the collection to Postman. Merging alone does not publish.
 

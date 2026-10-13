@@ -19,6 +19,21 @@ jobs:
           jq -e . postman/collection.json > /dev/null
           echo "OK — items=$(jq '.collection.item | length' postman/collection.json) bytes=$(stat -c %s postman/collection.json)"
 
+  schema-agreement:
+    name: Bodies and examples match the published schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # The portal links to TransactionTree/transactiontree-schemas at main, so it is checked
+      # against main. Standard-library Python plus the distribution's xmllint; nothing from PyPI.
+      - name: Validate request bodies and saved examples
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libxml2-utils
+          git clone --quiet --depth 1 https://github.com/TransactionTree/transactiontree-schemas.git "$RUNNER_TEMP/schemas"
+          echo "schemas at $(git -C "$RUNNER_TEMP/schemas" rev-parse --short HEAD)"
+          python3 scripts/validate_against_schemas.py postman/collection.json "$RUNNER_TEMP/schemas"
+
   internal-leak-scan:
     name: Internal-leak scan
     runs-on: ubuntu-latest
