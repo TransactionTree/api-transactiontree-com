@@ -13,6 +13,7 @@ The portal at `https://api.transactiontree.com` is Postman's published documenta
 | Overview | Platform overview, credentials and security, common conventions |
 | Retail Integration Gateway (RIG) | Digital receipt and customer API (formerly VRG) — `/VRG/*` endpoints |
 | Customer360 | Customer, orders, loyalty, coupons, gift cards, products, returns, privacy (formerly BORMC) |
+| Customer Custom Fields (C360) | Read/write a customer's custom-field (attribute) values and manage the field/group definitions — JSON endpoints under `/customfield-app` (bearer auth) |
 | MessageManager | Transactional messaging API |
 | Digivize | Campaigns, contacts, SMS/MMS, email, events, PIM, storage, templates, validation, webhooks |
 
