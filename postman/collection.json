@@ -13391,6 +13391,1373 @@
         "uid": "6363906-1a58b6f8-5a2c-40a6-a729-ace1428c2c02"
       },
       {
+        "name": "Customer Custom Fields (C360)",
+        "id": "83a5e1df-9f2a-4ef3-9d5e-86f96b35df0f",
+        "description": "Read and write C360 **custom fields** (attributes) on a customer, and manage the field/group definitions behind them. Component: `customfield-app` (Apache OFBiz / Jersey). All endpoints are **POST** with a JSON body and a JSON response.\n\n**Authentication** — Bearer token. The token is `base64(secretCode)`, sent as `Authorization: Bearer <token>`, where `secretCode` is the value issued with your credentials. Integrators set the collection variable `C360SecretCode`; the folder pre-request script derives `C360BearerToken = base64(C360SecretCode)` and the folder auth sends it. Credential-free endpoints still accept (and ignore) the header.\n\n**Response envelope** — every call returns **HTTP 200** with a `response_code` in the body (except a malformed/empty JSON body, which is a Jersey **HTTP 500** before the app runs). Success is `S200`; errors are `E###`. **Assert on `response_code`, never on HTTP status.**\n\n**Identifier casing is not uniform** (by design of the upstream service): `customer/v1` takes a nested `customerIdentifier` with camelCase keys (`partyId`, `externalId`, `email`, `phone`); `group/v1 searchGroup`/`searchGroupField` take camelCase `groupType`/`groupId`; the field and group **definition** endpoints take snake_case (`group_id`, `custom_field_id`, `grouping_code`, `domain_entity_type`, `domain_entity_id`). Send keys exactly as shown per request.\n\n**Two storage tables, do not assume they agree** — `customer/v1` reads/writes the classification store; `group/v1` reads the field-value store. A value written through one family is not necessarily visible through the other. Read a customer's attributes back through the same family you wrote them with.",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{C360BearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "// Derive the bearer token from the plaintext secretCode once per request.",
+                "var secret = pm.collectionVariables.get('C360SecretCode') || pm.environment.get('C360SecretCode');",
+                "if (secret) {",
+                "  var b64 = (typeof btoa === 'function')",
+                "    ? btoa(secret)",
+                "    : Buffer.from(secret, 'utf8').toString('base64');",
+                "  pm.collectionVariables.set('C360BearerToken', b64);",
+                "}"
+              ]
+            }
+          }
+        ],
+        "item": [
+          {
+            "name": "Customer attributes (customer/v1)",
+            "id": "bb1989e2-e35a-493d-a608-14910f2e7e09",
+            "item": [
+              {
+                "name": "Read a customer's custom fields",
+                "id": "7ac947e9-ca5f-49a1-a662-ad24b6a17dd6",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"customerIdentifier\": {\n    \"partyId\": \"{{partyId}}\"\n  },\n  \"groupType\": \"CUSTOM_FIELD\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/customer/v1/searchCustomerField",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "customer",
+                      "v1",
+                      "searchCustomerField"
+                    ]
+                  },
+                  "description": "Return a customer's stored attribute values for one group type.\n\n`customerIdentifier` accepts **one** of `partyId`, `externalId` (a POS/loyalty id resolved via PartyIdentification), `email`, or `phone`. `groupType` is one of `CUSTOM_FIELD`, `SEGMENTATION`, `ECONOMIC_METRIC`.\n\nReads the classification store. For a `SEGMENTATION` group the returned `customFieldId`s are the segment memberships themselves (the field *is* the value).\n\nErrors: `E145` externalId matched no identification row · `E135` customer not found/inactive · `E152` groupType missing · `E153` groupType not one of the three · `E1020` bad email · `E1039` phone shorter than 10 digits.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[searchCustomerField-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Customer/searchCustomerField/searchCustomerField-request.schema.json)\n\n**Response schema**\n\n[searchCustomerField-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Customer/searchCustomerField/searchCustomerField-response.schema.json)\n\n**Worked examples**\n\n[searchCustomerField/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Customer/searchCustomerField/examples)"
+                },
+                "response": [
+                  {
+                    "id": "98e97d87-d269-4054-aa8f-70ff9b54000c",
+                    "name": "Success — CUSTOM_FIELD",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"customerIdentifier\": {\n    \"partyId\": \"10000000215\"\n  },\n  \"groupType\": \"CUSTOM_FIELD\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/customer/v1/searchCustomerField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "customer",
+                          "v1",
+                          "searchCustomerField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"email\": \"jane.doe@example.com\",\n  \"customerId\": \"10000000215\",\n  \"customFields\": [\n    {\n      \"customFieldId\": \"LOYALTY_TIER\",\n      \"customFieldName\": \"Loyalty Tier\",\n      \"value\": \"GOLD\"\n    }\n  ],\n  \"phone\": \"5555550100\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235133\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  },
+                  {
+                    "id": "3f0979c9-3f56-419a-b1ab-9492bacd3d85",
+                    "name": "Success — SEGMENTATION (membership = value)",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"customerIdentifier\": {\n    \"partyId\": \"10000000215\"\n  },\n  \"groupType\": \"SEGMENTATION\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/customer/v1/searchCustomerField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "customer",
+                          "v1",
+                          "searchCustomerField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"email\": \"jane.doe@example.com\",\n  \"customerId\": \"10000000215\",\n  \"customFields\": [\n    {\n      \"customFieldId\": \"EMAIL_AND_PHONE\",\n      \"customFieldName\": \"BOTH\",\n      \"value\": \"COMMUNICATION PREFERENCE\"\n    }\n  ],\n  \"phone\": \"5555550100\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235134\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  },
+                  {
+                    "id": "57047912-610c-447e-a3ea-88a77bcae6b2",
+                    "name": "Error — invalid groupType (E153)",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"customerIdentifier\": {\n    \"partyId\": \"10000000215\"\n  },\n  \"groupType\": \"BOGUS\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/customer/v1/searchCustomerField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "customer",
+                          "v1",
+                          "searchCustomerField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"email\": \"\",\n  \"customerId\": \"10000000215\",\n  \"customFields\": null,\n  \"response_code\": \"E153\",\n  \"response_ref_id\": \"235135\",\n  \"response_code_desc\": \"\"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Write a customer's custom fields",
+                "id": "7cf4f891-cae0-4455-99e8-19d911eec46c",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"customerIdentifier\": {\n    \"partyId\": \"{{partyId}}\"\n  },\n  \"customFields\": [\n    {\n      \"customFieldId\": \"{{customFieldId}}\",\n      \"value\": \"GOLD\"\n    }\n  ]\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/customer/v1/updateCustomerField",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "customer",
+                      "v1",
+                      "updateCustomerField"
+                    ]
+                  },
+                  "description": "Set one or more attribute values on a customer. Same `customerIdentifier` rules as the read. Each `customFields[]` entry needs a `customFieldId` that already exists (create it first via `field/v1/createField`) and a `value`.\n\nWrites the classification store. The response echoes `updatedFields[]` with `oldValue`/`newValue`.\n\n**Quirk:** an unknown `customFieldId` is **not** an `E###` code — `response_code` comes back as the free-text string `\"<id> is Invalid, \"` with an empty `response_code_desc`, and `updatedFields` is null. Check for a leading `S` to detect success.\n\nErrors: `E135` customer not found · `E151` customFields empty.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[updateCustomerField-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Customer/updateCustomerField/updateCustomerField-request.schema.json)\n\n**Response schema**\n\n[updateCustomerField-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Customer/updateCustomerField/updateCustomerField-response.schema.json)\n\n**Worked examples**\n\n[updateCustomerField/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Customer/updateCustomerField/examples)"
+                },
+                "response": [
+                  {
+                    "id": "79af3a6d-7ada-4c0a-967e-2fbd4a34171a",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"customerIdentifier\": {\n    \"partyId\": \"10000000215\"\n  },\n  \"customFields\": [\n    {\n      \"customFieldId\": \"LOYALTY_TIER\",\n      \"value\": \"GOLD\"\n    }\n  ]\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/customer/v1/updateCustomerField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "customer",
+                          "v1",
+                          "updateCustomerField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"customerId\": \"10000000215\",\n  \"updatedFields\": [\n    {\n      \"customFieldId\": \"LOYALTY_TIER\",\n      \"oldValue\": \"\",\n      \"newValue\": \"GOLD\"\n    }\n  ],\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235150\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  },
+                  {
+                    "id": "4352df8e-5747-4aff-8567-73f4200ebaac",
+                    "name": "Unknown field (free-text error)",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"customerIdentifier\": {\n    \"partyId\": \"10000000215\"\n  },\n  \"customFields\": [\n    {\n      \"customFieldId\": \"NO_SUCH_FIELD\",\n      \"value\": \"X\"\n    }\n  ]\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/customer/v1/updateCustomerField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "customer",
+                          "v1",
+                          "updateCustomerField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"customerId\": \"10000000215\",\n  \"updatedFields\": null,\n  \"response_code\": \"NO_SUCH_FIELD is Invalid, \",\n  \"response_ref_id\": \"235152\",\n  \"response_code_desc\": \"\"\n}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Attribute groups (group/v1)",
+            "id": "43230432-d57b-4b2b-9981-22cc921875da",
+            "item": [
+              {
+                "name": "List groups of a type",
+                "id": "4175ff92-8646-4c36-85c4-fba806bb28fc",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"groupType\": \"CUSTOM_FIELD\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/searchGroup",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "group",
+                      "v1",
+                      "searchGroup"
+                    ]
+                  },
+                  "description": "List every attribute group of a given `groupType` (`CUSTOM_FIELD`, `SEGMENTATION`, `ECONOMIC_METRIC`) with its fields. Definition data only — no customer values. Errors: `E152` groupType missing · `E153` not a valid type.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[searchGroup-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/searchGroup/searchGroup-request.schema.json)\n\n**Response schema**\n\n[searchGroup-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/searchGroup/searchGroup-response.schema.json)\n\n**Worked examples**\n\n[searchGroup/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Group/searchGroup/examples)"
+                },
+                "response": [
+                  {
+                    "id": "22a16638-6080-4fae-b400-18bc6dd7a3df",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"groupType\": \"CUSTOM_FIELD\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/searchGroup",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "searchGroup"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"groups\": [\n    {\n      \"groupId\": \"LOYALTY\",\n      \"groupName\": \"Loyalty\",\n      \"groupType\": \"CUSTOM_FIELD\",\n      \"customFields\": [\n        {\n          \"customFieldId\": \"LOYALTY_TIER\",\n          \"customFieldName\": \"Loyalty Tier\",\n          \"isEnabled\": \"\"\n        }\n      ]\n    }\n  ],\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235140\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "List a group's fields",
+                "id": "3735d18f-e1c7-46d5-a102-a2f0ad6cc086",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"groupId\": \"{{groupId}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/searchGroupField",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "group",
+                      "v1",
+                      "searchGroupField"
+                    ]
+                  },
+                  "description": "Return the field definitions in one group (by `groupId`). Gives `customFieldId`, `customFieldName`, `customFieldType` (SINGLE/MULTIPLE) and `customFieldLength` — **not** the permitted option values. There is no list-all endpoint; you must know the `groupId`.\n\nErrors: `E154` groupId missing · `E155` unknown groupId.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[searchGroupField-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/searchGroupField/searchGroupField-request.schema.json)\n\n**Response schema**\n\n[searchGroupField-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/searchGroupField/searchGroupField-response.schema.json)\n\n**Worked examples**\n\n[searchGroupField/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Group/searchGroupField/examples)"
+                },
+                "response": [
+                  {
+                    "id": "bbe11005-d653-4470-95b2-25b1b039025a",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"groupId\": \"LOYALTY\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/searchGroupField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "searchGroupField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"groupName\": \"Loyalty\",\n  \"groupId\": \"LOYALTY\",\n  \"customFields\": [\n    {\n      \"customFieldId\": \"LOYALTY_TIER\",\n      \"customFieldName\": \"Loyalty Tier\",\n      \"isEnabled\": \"\",\n      \"customFieldLength\": \"40\",\n      \"customFieldType\": \"SINGLE\"\n    }\n  ],\n  \"groupType\": \"CUSTOM_FIELD\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235146\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  },
+                  {
+                    "id": "79bcd7c8-17ac-4c0a-9d7f-9c88389106c2",
+                    "name": "Unknown groupId (E155)",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"groupId\": \"NO_SUCH_GROUP\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/searchGroupField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "searchGroupField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"groupName\": \"\",\n  \"groupId\": \"\",\n  \"customFields\": null,\n  \"groupType\": \"\",\n  \"response_code\": \"E155\",\n  \"response_ref_id\": \"235155\",\n  \"response_code_desc\": \"\"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Read a group's values for a customer",
+                "id": "f7f54541-973c-4e1b-a085-0fa5535d4d1d",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"group_id\": \"{{groupId}}\",\n  \"domain_entity_type\": \"CUSTOMER\",\n  \"domain_entity_id\": \"{{partyId}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/getAttributeGroupData",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "group",
+                      "v1",
+                      "getAttributeGroupData"
+                    ]
+                  },
+                  "description": "Read the field values of one group for one domain entity (`domain_entity_type=CUSTOMER`, `domain_entity_id=<partyId>`). Reads the **field-value** store.\n\nReturns a `group` object with `field_list[]`; each field carries `field_value` (null when the entity has no stored value for that field). When the entity has no row at all for the group, `group` is `null` with `S200`.\n\nsnake_case body. Errors: `E1006` a required param missing · `E1001` unknown group_id or the domain entity doesn't exist.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[getAttributeGroupData-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/getAttributeGroupData/getAttributeGroupData-request.schema.json)\n\n**Response schema**\n\n[getAttributeGroupData-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/getAttributeGroupData/getAttributeGroupData-response.schema.json)\n\n**Worked examples**\n\n[getAttributeGroupData/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Group/getAttributeGroupData/examples)"
+                },
+                "response": [
+                  {
+                    "id": "7c85fdef-1535-46d2-90bc-608ade2a0c0d",
+                    "name": "Success (field_value null = not set)",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"group_id\": \"TERMS_AND_CONDITIONS\",\n  \"domain_entity_type\": \"CUSTOMER\",\n  \"domain_entity_id\": \"10000000215\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/getAttributeGroupData",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "getAttributeGroupData"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"domain_entity_id\": \"10000000215\",\n  \"grouping_code\": \"CUSTOMER_TERMS\",\n  \"grouping_code_id\": \"20181\",\n  \"grouping_code_desc\": \"Customer Terms\",\n  \"domain_entity_type\": \"CUSTOMER\",\n  \"group\": {\n    \"sequence\": \"2\",\n    \"field_list\": [\n      {\n        \"sequence\": \"1\",\n        \"param_data\": null,\n        \"field_value\": null,\n        \"field_name\": \"Terms and Conditions Acceptance\",\n        \"field_id\": \"20195\"\n      }\n    ],\n    \"group_id\": \"TERMS_AND_CONDITIONS\",\n    \"group_name\": \"Terms and Conditions\"\n  },\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235156\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Read a grouping code's groups for a customer",
+                "id": "079278b7-e669-43a5-a541-90a44ef800ef",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"grouping_code\": \"{{groupingCode}}\",\n  \"domain_entity_type\": \"CUSTOMER\",\n  \"domain_entity_id\": \"{{partyId}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/getAttributeGroupCodeData",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "group",
+                      "v1",
+                      "getAttributeGroupCodeData"
+                    ]
+                  },
+                  "description": "Like getAttributeGroupData but keyed by `grouping_code` (either the grouping-code id or its code string); returns every group under that code as `group_list[]`. snake_case body.\n\nErrors: `E1006` required param missing · `E1001` / `E1002` unknown grouping code.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[getAttributeGroupCodeData-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/getAttributeGroupCodeData/getAttributeGroupCodeData-request.schema.json)\n\n**Response schema**\n\n[getAttributeGroupCodeData-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/getAttributeGroupCodeData/getAttributeGroupCodeData-response.schema.json)\n\n**Worked examples**\n\n[getAttributeGroupCodeData/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Group/getAttributeGroupCodeData/examples)"
+                },
+                "response": [
+                  {
+                    "id": "8b45f9c5-086f-49b4-b73c-a713fbc32ca5",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"grouping_code\": \"20181\",\n  \"domain_entity_type\": \"CUSTOMER\",\n  \"domain_entity_id\": \"10000000215\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/getAttributeGroupCodeData",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "getAttributeGroupCodeData"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"domain_entity_id\": \"10000000215\",\n  \"grouping_code\": \"CUSTOMER_TERMS\",\n  \"grouping_code_id\": \"20181\",\n  \"grouping_code_desc\": \"Customer Terms\",\n  \"group_list\": [\n    {\n      \"sequence\": \"2\",\n      \"field_list\": [\n        {\n          \"sequence\": \"1\",\n          \"param_data\": null,\n          \"field_value\": null,\n          \"field_name\": \"Terms and Conditions Acceptance\",\n          \"field_id\": \"20195\"\n        }\n      ],\n      \"group_id\": \"TERMS_AND_CONDITIONS\",\n      \"group_name\": \"Terms and Conditions\"\n    }\n  ],\n  \"domain_entity_type\": \"CUSTOMER\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235157\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Create a group",
+                "id": "125a8190-2dc7-4b4c-836b-a80d8b5832b8",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"group_id\": \"{{groupId}}\",\n  \"group_name\": \"My Group\",\n  \"grouping_code\": \"\",\n  \"sequence\": \"1\",\n  \"hide\": \"N\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/createGroup",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "group",
+                      "v1",
+                      "createGroup"
+                    ]
+                  },
+                  "description": "Create an attribute group (definition). `group_id` and `group_name` required; `hide` is Y/N. snake_case body. Errors: `E1006` group_id/group_name missing · `E1001` group_id already exists.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[createGroup-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/createGroup/createGroup-request.schema.json)\n\n**Response schema**\n\n[createGroup-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/createGroup/createGroup-response.schema.json)\n\n**Worked examples**\n\n[createGroup/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Group/createGroup/examples)"
+                },
+                "response": [
+                  {
+                    "id": "7abf4cd7-b1c1-4df7-aa1b-1496cc6e0f86",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"group_id\": \"MY_GROUP\",\n  \"group_name\": \"My Group\",\n  \"sequence\": \"1\",\n  \"hide\": \"N\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/createGroup",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "createGroup"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"group_id\": \"MY_GROUP\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235140\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  },
+                  {
+                    "id": "2bd889d4-57cf-4b11-b681-b2c33cdcfe46",
+                    "name": "Duplicate group_id (E1001)",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"group_id\": \"MY_GROUP\",\n  \"group_name\": \"My Group\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/createGroup",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "createGroup"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"group_id\": \"\",\n  \"response_code\": \"E1001\",\n  \"response_ref_id\": \"235141\",\n  \"response_code_desc\": \"[E1001] Invalid Data: group_id \"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Update a group",
+                "id": "393bfdd6-cd31-4f22-a491-33b348a65685",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"group_id\": \"{{groupId}}\",\n  \"group_name\": \"My Group v2\",\n  \"sequence\": \"1\",\n  \"hide\": \"N\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/updateGroup",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "group",
+                      "v1",
+                      "updateGroup"
+                    ]
+                  },
+                  "description": "Update a group definition. `group_id` required and must exist. snake_case body. Errors: `E1006` group_id missing · `E1001` unknown group_id.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[updateGroup-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/updateGroup/updateGroup-request.schema.json)\n\n**Response schema**\n\n[updateGroup-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/updateGroup/updateGroup-response.schema.json)\n\n**Worked examples**\n\n[updateGroup/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Group/updateGroup/examples)"
+                },
+                "response": [
+                  {
+                    "id": "326e42a9-967e-4674-9388-a4e9a5289e6d",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"group_id\": \"MY_GROUP\",\n  \"group_name\": \"My Group v2\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/updateGroup",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "updateGroup"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"group_id\": \"MY_GROUP\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235142\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Delete a group",
+                "id": "e73876a5-9b36-4e1d-bb20-8eb79480d4a7",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"group_id\": \"{{groupId}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/deleteGroup",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "group",
+                      "v1",
+                      "deleteGroup"
+                    ]
+                  },
+                  "description": "Delete a group definition by `group_id`. snake_case body. **Destructive.** Errors: `E1006` group_id missing · `E1001` unknown group_id.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[deleteGroup-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/deleteGroup/deleteGroup-request.schema.json)\n\n**Response schema**\n\n[deleteGroup-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Group/deleteGroup/deleteGroup-response.schema.json)\n\n**Worked examples**\n\n[deleteGroup/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Group/deleteGroup/examples)"
+                },
+                "response": [
+                  {
+                    "id": "0ffbb864-a57a-455a-910d-6213ec1b386d",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"group_id\": \"MY_GROUP\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/group/v1/deleteGroup",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "group",
+                          "v1",
+                          "deleteGroup"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235154\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "Attribute fields (field/v1)",
+            "id": "23766e43-d150-48ce-8717-bc171523c15d",
+            "item": [
+              {
+                "name": "Create a field",
+                "id": "ec9b9640-134d-42a0-9d96-958237e3cb43",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"custom_field_id\": \"{{customFieldId}}\",\n  \"group_id\": \"{{groupId}}\",\n  \"custom_field_name\": \"My Field\",\n  \"custom_field_format\": \"TEXT\",\n  \"custom_field_type\": \"SINGLE\",\n  \"custom_field_length\": \"40\",\n  \"sequence_number\": \"1\",\n  \"hide\": \"N\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/field/v1/createField",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "field",
+                      "v1",
+                      "createField"
+                    ]
+                  },
+                  "description": "Create a field (attribute) definition, optionally inside `group_id`. `custom_field_format` must be one of the `CF_FLD_FORMAT` values: `TEXT`, `TEXT_AREA`, `NUMERIC`, `BOOLEAN`, `CHECK_BOX`, `DROP_DOWN`, `RADIO`, `LABEL_TEXT`. `custom_field_name` and `custom_field_type` are required; `hide` is Y/N. snake_case body.\n\nErrors: `E1006` a required param missing · `E1004` custom_field_format not in CF_FLD_FORMAT · `E1001` unknown group_id.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[createField-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Field/createField/createField-request.schema.json)\n\n**Response schema**\n\n[createField-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Field/createField/createField-response.schema.json)\n\n**Worked examples**\n\n[createField/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Field/createField/examples)"
+                },
+                "response": [
+                  {
+                    "id": "07d12b2a-b318-4ce7-9003-a107c2488b12",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"custom_field_id\": \"MY_FIELD\",\n  \"group_id\": \"MY_GROUP\",\n  \"custom_field_name\": \"My Field\",\n  \"custom_field_format\": \"TEXT\",\n  \"custom_field_type\": \"SINGLE\",\n  \"custom_field_length\": \"40\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/field/v1/createField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "field",
+                          "v1",
+                          "createField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"custom_field_id\": \"MY_FIELD\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235144\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  },
+                  {
+                    "id": "cdd93450-a739-4270-8248-cb1e8d9e182e",
+                    "name": "Format not in LOV (E1004)",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"custom_field_id\": \"MY_FIELD\",\n  \"custom_field_name\": \"My Field\",\n  \"custom_field_format\": \"BOGUS\",\n  \"custom_field_type\": \"SINGLE\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/field/v1/createField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "field",
+                          "v1",
+                          "createField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"custom_field_id\": \"\",\n  \"response_code\": \"E1004\",\n  \"response_ref_id\": \"235143\",\n  \"response_code_desc\": \"[E1004] Unknown LOV Value: custom_field_type \"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Update a field",
+                "id": "ed348f7d-f40d-430a-a7c8-e20ac6c07aea",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"custom_field_id\": \"{{customFieldId}}\",\n  \"group_id\": \"{{groupId}}\",\n  \"custom_field_name\": \"My Field v2\",\n  \"custom_field_format\": \"TEXT\",\n  \"custom_field_type\": \"SINGLE\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/field/v1/updateField",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "field",
+                      "v1",
+                      "updateField"
+                    ]
+                  },
+                  "description": "Update a field definition. `custom_field_id` required and must exist. snake_case body. Errors: `E1006` missing param · `E1001` unknown custom_field_id · `E1004` bad format.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[updateField-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Field/updateField/updateField-request.schema.json)\n\n**Response schema**\n\n[updateField-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Field/updateField/updateField-response.schema.json)\n\n**Worked examples**\n\n[updateField/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Field/updateField/examples)"
+                },
+                "response": [
+                  {
+                    "id": "cf46aa95-cd89-4fdd-8019-ef50605d94da",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"custom_field_id\": \"MY_FIELD\",\n  \"group_id\": \"MY_GROUP\",\n  \"custom_field_name\": \"My Field v2\",\n  \"custom_field_format\": \"TEXT\",\n  \"custom_field_type\": \"SINGLE\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/field/v1/updateField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "field",
+                          "v1",
+                          "updateField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"group_id\": \"MY_GROUP\",\n  \"custom_field_id\": \"MY_FIELD\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235145\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  }
+                ]
+              },
+              {
+                "name": "Delete a field",
+                "id": "9cc1b942-c418-4ff8-9435-f7cb60e3810c",
+                "protocolProfileBehavior": {
+                  "disableBodyPruning": true
+                },
+                "request": {
+                  "method": "POST",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "type": "text"
+                    }
+                  ],
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"custom_field_id\": \"{{customFieldId}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  },
+                  "url": {
+                    "raw": "{{C360URL}}customfield-app/api/attribute/field/v1/deleteField",
+                    "host": [
+                      "{{C360URL}}customfield-app"
+                    ],
+                    "path": [
+                      "api",
+                      "attribute",
+                      "field",
+                      "v1",
+                      "deleteField"
+                    ]
+                  },
+                  "description": "Delete a field definition by `custom_field_id`. snake_case body. **Destructive.** Errors: `E1006` missing · `E1001` unknown custom_field_id.\n\n**Common response codes:** `S200` success · `E108` missing Authorization header · `E101` bad/expired token (desc text is misleadingly \"Provide Xml input\") · `E100` token expired · `E1000` empty body (returned as HTTP 500 by Jersey) · `E1006` required param missing · `E1001` invalid data (unknown id) · `E1004` value not in its LOV.\n\n**Request schema**\n\n[deleteField-request.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Field/deleteField/deleteField-request.schema.json)\n\n**Response schema**\n\n[deleteField-response.schema.json](https://github.com/TransactionTree/transactiontree-schemas/blob/main/customfield/1.0/Field/deleteField/deleteField-response.schema.json)\n\n**Worked examples**\n\n[deleteField/examples](https://github.com/TransactionTree/transactiontree-schemas/tree/main/customfield/1.0/Field/deleteField/examples)"
+                },
+                "response": [
+                  {
+                    "id": "729573d5-97af-4294-8b06-207be5b83f7c",
+                    "name": "Success",
+                    "originalRequest": {
+                      "method": "POST",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "body": {
+                        "mode": "raw",
+                        "raw": "{\n  \"custom_field_id\": \"MY_FIELD\"\n}",
+                        "options": {
+                          "raw": {
+                            "language": "json"
+                          }
+                        }
+                      },
+                      "url": {
+                        "raw": "{{C360URL}}customfield-app/api/attribute/field/v1/deleteField",
+                        "host": [
+                          "{{C360URL}}customfield-app"
+                        ],
+                        "path": [
+                          "api",
+                          "attribute",
+                          "field",
+                          "v1",
+                          "deleteField"
+                        ]
+                      }
+                    },
+                    "status": "OK",
+                    "code": 200,
+                    "_postman_previewlanguage": "json",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": "{\n  \"group_id\": \"MY_GROUP\",\n  \"response_code\": \"S200\",\n  \"response_ref_id\": \"235153\",\n  \"response_code_desc\": \"[S200] Processed Request Successfully\"\n}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "name": "MessageManager",
         "item": [
           {
@@ -18616,6 +19983,36 @@
       {
         "key": "DigivizeApiSecret",
         "value": "",
+        "type": "string"
+      },
+      {
+        "key": "C360SecretCode",
+        "value": "",
+        "type": "string"
+      },
+      {
+        "key": "C360BearerToken",
+        "value": "",
+        "type": "string"
+      },
+      {
+        "key": "partyId",
+        "value": "10000000215",
+        "type": "string"
+      },
+      {
+        "key": "groupId",
+        "value": "LOYALTY",
+        "type": "string"
+      },
+      {
+        "key": "groupingCode",
+        "value": "20181",
+        "type": "string"
+      },
+      {
+        "key": "customFieldId",
+        "value": "LOYALTY_TIER",
         "type": "string"
       }
     ]
